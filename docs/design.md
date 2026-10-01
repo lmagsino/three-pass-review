@@ -214,6 +214,8 @@ If the pricing for the configured model is missing, the tool refuses to run unle
 
 ## GitHub Action
 
+> **Deferred.** The maintainer has put the Action on hold: no `action.yml` and no new workflows until this section is picked up again. The CLI is the only interface for now. The plan below stands.
+
 `action.yml` at the repo root is a composite action:
 
 1. `ruby/setup-ruby` (with bundler cache).

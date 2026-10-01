@@ -6,7 +6,7 @@ Build in order. Each milestone ends with green tests and its own commit. "Done w
 
 - Gem skeleton: `three_pass_review.gemspec`, `Gemfile`, `Rakefile`, `exe/threepass`, `lib/three_pass_review.rb`, `lib/three_pass_review/version.rb`.
 - Ruby 3.3+. Minitest. standardrb.
-- CI: add a `ruby` job to `.github/workflows/test.yml` (setup-ruby, `bundle exec rake`). Keep the existing `guide` job.
+- CI: **deferred by the maintainer.** No `ruby` job is added to `.github/workflows/test.yml`; `bundle exec rake` runs locally. The existing `guide` job stays as it is.
 - `.gitignore` for Ruby (`/vendor`, `/.bundle`, `/pkg`, `/coverage`).
 
 **Done when:** `bundle exec rake` runs tests and standardrb, both green. `bundle exec exe/threepass --version` prints the version.
@@ -61,13 +61,9 @@ Build in order. Each milestone ends with green tests and its own commit. "Done w
 ## M5: CLI and GitHub Action
 
 - `threepass review` with the flags from [design](design.md#inputs) and the documented exit codes.
-- `action.yml` (composite action), plus an example workflow in the README:
-  - creates or updates one comment marked `<!-- threepass -->`,
-  - sets outputs,
-  - skips forks.
-- Dogfood: a workflow in this repo runs the action on its own PRs. Not required for merge.
+- **Deferred by the maintainer:** `action.yml`, the dogfood workflow, and any other new file under `.github/workflows/`. The [GitHub Action](design.md#github-action) section of the design stays as the plan for when they're picked up.
 
-**Done when:** the CLI works end to end with `FakeClient` (`THREEPASS_FAKE=fixtures/…`), and on a real diff when a key is set. `action.yml` passes actionlint, if it's available.
+**Done when:** the CLI works end to end with `FakeClient` (`THREEPASS_FAKE=fixtures/…`), and on a real diff when a key is set.
 
 ## M6: Eval harness
 
