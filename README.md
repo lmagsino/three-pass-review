@@ -4,75 +4,76 @@
 
 **AI reads every line. People own the risk.**
 
+A code review process you install in every project: two AI passes on every pull request, and a third, deeper pass only where a mistake would really hurt.
+
 [![License: MIT](https://img.shields.io/badge/license-MIT-2b7a4b)](LICENSE)
 [![Status](https://img.shields.io/badge/status-early-b07a12)](docs/roadmap.md)
 
 </div>
 
-A code review process for teams where AI agents write much of the code. **Every pull request gets two AI reviews. People do a deep review only where a mistake would really hurt.**
-
 <p align="center">
-  <img src="guide/docs/images/flow.svg" alt="A pull request triggers Pass 1 (Copilot line comments), Pass 2 (an agent review using a five-axis review skill) and a tier check. The agent review can escalate. The tier check routes the PR to light review (one approver) or Pass 3, deep review (owner plus a second reviewer). A review-gate check enforces both before merge." width="100%">
+  <img src="guide/docs/images/flow.svg" alt="A pull request triggers pass 1 (Copilot line comments), pass 2 (the light review) and a tier check. The light review can escalate. The tier check sends the PR to one approval, or to pass 3, the deep review: an AI reviewer brief, then the code owner and a second reviewer. A review-gate check enforces both before merge." width="100%">
 </p>
 
 ## The three passes
 
-| | Who | When | What it does |
+| | What runs | On which PRs | What you get |
 |---|---|---|---|
-| **1. Auto review** | GitHub Copilot | Every push | Fast line comments on bugs, security and broken tests, with one-click fixes |
-| **2. Agent review** | An AI agent using [Addy Osmani's `code-review-and-quality` skill](https://github.com/addyosmani/agent-skills/tree/main/skills/code-review-and-quality) | Every ready PR | Reviews the whole change across five axes, reports only findings it can verify, and can escalate a risky PR |
-| **3. Human review** | The code owner and a second reviewer | Risky PRs only | Checks the tests, contracts and rollback plan |
+| **1. Auto review** | GitHub Copilot code review | Every push | Line comments with one-click fixes |
+| **2. Light review** | An AI reviewer you choose: [Addy Osmani's `code-review-and-quality`](https://github.com/addyosmani/agent-skills/tree/main/skills/code-review-and-quality) skill, or Claude Code's [`pr-review-toolkit`](https://github.com/anthropics/claude-code/tree/main/plugins/pr-review-toolkit) | Every ready PR | One verified summary, inline comments for real problems, and an escalation when the PR needs more |
+| **3. Deep review** | An AI **reviewer brief**, then the code owner and a second reviewer | Only PRs the tier check routes deep: sensitive paths, big or cross-cutting changes, deleted tests, dependency changes, escalations | The brief does the reading; people spend their time on judgment and sign off |
 
-A **tier check** sends each PR to *light* review (one approver) or *deep* review (pass 3). A PR goes deep when, for example, it touches auth, payments, migrations or infra, deletes tests, is very large, or was escalated by the agent. AI never approves anything: every PR still needs a person.
+A **tier check**, with rules read from the base branch, decides which PRs go deep, and a required **`review-gate`** check enforces it. Automation can raise a tier but never lower one. AI never approves anything.
+
+## Pass 3: help for the human reviewer
+
+Deep reviews are where human time goes, so pass 3 starts with a brief that the owner can read in five minutes, before any code:
+
+- **The change** in plain words, and whether it matches the PR description
+- **A change map**, computed from the diff: areas touched, size, and warnings for migrations, dependencies, CI and infra changes, and deletions
+- **Impact** on users and callers, **risks**, and how to **roll back**
+- **Tests**: what's covered and what isn't
+- **Where to look first**: the riskiest lines, most important first
+- **Questions for the author**
+- **Findings** from three independent AI checks (correctness, security, architecture)
+- **A sign-off draft**, pre-filled for the reviewer to confirm or correct
+
+[Here's a brief](test/fixtures/golden/basic_brief.md) rendered from the test fixtures (synthetic, not a real review). The brief comes from `threepass`, a tool in this repository. It runs under a hard cost ceiling, never approves or blocks, and reads the PR as data only.
 
 ## Why this setup
 
-- **People can't read every line of agent-written code.** Two AI passes read all of it, so humans don't have to.
-- **Human attention goes where the risk is.** Routine PRs get a quick approval; risky ones get two careful reviewers.
-- **Automation can raise risk, never lower it.** Only a maintainer can remove an escalation, and a required `review-gate` check enforces each tier.
-- **Two different kinds of AI review.** Fast line-level comments catch small mistakes; a whole-PR agent review catches problems in the design and blast radius.
+- **People can't read every line of AI-written code.** Two AI passes read all of it, so humans don't have to.
+- **Effort follows risk.** Routine PRs need one quick approval. Risky ones get the brief and two careful reviewers.
+- **Two different AI reviewers.** Fast line-level comments and a whole-PR review catch different problems.
+- **A PR can't weaken its own review.** The rules, the reviewer instructions and the AI budget all come from the base branch.
+- **One setup for every project.** Install the kit once per repository, and upgrade them all in place when it improves.
 
-## Quick start
+## Get started
 
-Copy the kit (workflows, routing policy, reviewer instructions, PR template and checklists) into your repository:
+Requires the GitHub CLI and an Anthropic API key, and takes about 30 minutes per repository.
 
 ```bash
 git clone https://github.com/lmagsino/three-pass-review.git
-cd your-repo
-bash ../three-pass-review/guide/scripts/install.sh .
+cd your-project && git switch -c three-pass-review
+bash ../three-pass-review/guide/scripts/install.sh . --light-reviewer addy   # or pr-review-toolkit
 ```
 
-The [setup guide](guide/docs/setup.md) covers the labels, the API key and the branch rule. To see how PRs get routed, open [`guide/site/index.html`](guide/site/index.html) in a browser and try the interactive demo.
+Then follow [setup](guide/docs/setup.md): set your sensitive paths, create the labels, add the API key, and turn on the branch rules.
+
+When the kit improves, upgrade each project in place. The files your team edits (policy, CODEOWNERS, PR template) are never touched:
+
+```bash
+git -C ../three-pass-review pull
+bash ../three-pass-review/guide/scripts/install.sh . --upgrade
+```
 
 ## What's in this repo
 
-- **[`guide/`](guide)**: the written guide (why, the flow, each pass, routing, rollout, FAQ), the drop-in GitHub kit and the demo website.
-- **`threepass`**: an AI reviewer being built to power pass 2. See below.
+- **[`guide/`](guide)**: the process. A written guide (why, each pass, routing, rollout, FAQ), the drop-in kit (workflows, routing policy, reviewer instructions, checklists, PR template), and a [one-page site](guide/site/index.html) with an interactive routing demo.
+- **`threepass`** ([design](docs/design.md)): the pass 3 engine, a Ruby CLI. It also runs on its own: `bundle exec exe/threepass review --diff change.patch --brief`.
+- **[`evals/`](evals)**: a public dataset and harness that measure `threepass`'s findings.
 
-## The pass-2 engine: `threepass`
-
-<p align="center">
-  <img src="docs/images/architecture.svg" alt="threepass: a context builder makes one frozen input, a cost ceiling checks every call first, three isolated checks (correctness, security, architecture) review in parallel, and a reconciler merges their findings into one comment with its cost." width="100%">
-</p>
-
-`threepass` is a command-line reviewer that makes pass 2 more thorough and measurable:
-
-- It splits the review into **three independent checks** (correctness, security and architecture) that never see each other's work. When two of them flag the same lines, confidence goes up.
-- It merges their findings into **one short, ranked comment**.
-- It has a **hard cost ceiling** and reports what each review cost.
-- It ships with a **public eval** that measures how well it works.
-
-It's built and tested but not yet evaluated, and it replaces the skill in pass 2 in roadmap milestone [M8](docs/roadmap.md#m8-plug-the-tool-into-the-guide).
-
-Try it without an API key (requires Ruby 3.3+):
-
-```bash
-cd three-pass-review && bundle install
-THREEPASS_FAKE=test/fixtures/llm/basic bundle exec exe/threepass review \
-  --diff test/fixtures/diffs/basic.patch --repo test/fixtures/repo --title "Add sortable invoices"
-```
-
-### Results
+### Measuring pass 3
 
 <!-- eval:start -->
 | | Recall (95% CI) | Precision (95% CI) | False positives per clean PR | Cost per review (median / p90) |
@@ -85,15 +86,14 @@ THREEPASS_FAKE=test/fixtures/llm/basic bundle exec exe/threepass review \
 _Generated by `rake eval:report` from `evals/results/`. Never edited by hand. Dataset: pending._
 <!-- eval:end -->
 
-This table is filled in only by `rake eval:report`, from real runs and human-labeled findings. See the [eval design](docs/eval-design.md).
+This table is filled in only by `rake eval:report`, from real runs and human-labeled findings ([eval design](docs/eval-design.md)). It measures the three checks' findings; the brief itself isn't scored.
 
 ## Learn more
 
-- [The guide](guide/README.md): the process in full
-- [threepass design](docs/design.md) and [why independent checks](docs/decisions/0001-independent-passes.md)
-- [Running the eval](evals/README.md)
-- [Roadmap](docs/roadmap.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
+- [The guide](guide/README.md) · [Setup](guide/docs/setup.md) · [FAQ](guide/docs/faq.md)
+- [`threepass` design](docs/design.md) · [Why independent checks](docs/decisions/0001-independent-passes.md) · [Roadmap](docs/roadmap.md)
+- [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
 
 ## License
 
-MIT. See [LICENSE](LICENSE). Pass 2 uses Addy Osmani's MIT-licensed `code-review-and-quality` skill. Not affiliated with Addy Osmani, GitHub or Anthropic.
+MIT. See [LICENSE](LICENSE). Pass 2 uses Addy Osmani's MIT-licensed skill or Anthropic's `pr-review-toolkit` plugin. Not affiliated with Addy Osmani, GitHub or Anthropic.
