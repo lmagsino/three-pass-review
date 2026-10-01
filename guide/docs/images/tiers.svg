@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="440" viewBox="0 0 1200 440" role="img" aria-labelledby="t d">
-  <title id="t">Light review compared with deep review</title>
-  <desc id="d">Light review: one approver, about 5 minutes, merges when the agent review is clean on the latest commit plus one approval. Deep review: the code owner and a second reviewer, 30 to 60 minutes, merges after two approvals of the latest commit.</desc>
+  <title id="t">The light tier compared with the deep tier</title>
+  <desc id="d">Light tier: one approver, about 5 minutes, merges when the light review is clean on the latest commit plus one approval. Deep tier: an AI reviewer brief, then the code owner and a second reviewer, 30 to 60 minutes, merges after two approvals of the latest commit.</desc>
   <style>
     text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
     .bg { fill: #f5f7f6; } .card { fill: #ffffff; stroke: #d8dee2; } .ink { fill: #17212b; } .muted { fill: #55626e; }
@@ -22,7 +22,7 @@
 
   <rect class="card" x="40" y="40" width="545" height="360" rx="14" stroke-width="1.5"/>
   <path class="gbg" d="M40 54 a14 14 0 0 1 14 -14 h517 a14 14 0 0 1 14 14 v62 h-545 z"/>
-  <text class="g" x="68" y="88" font-size="26" font-weight="700">Light review</text>
+  <text class="g" x="68" y="88" font-size="26" font-weight="700">Light tier</text>
   <text class="g" x="557" y="88" font-size="15" font-weight="700" text-anchor="end">tier/light</text>
   <g font-size="16">
     <text class="muted" x="68" y="160" font-weight="700">Who</text>
@@ -30,7 +30,7 @@
     <text class="muted" x="68" y="206" font-weight="700">Time</text>
     <text class="ink" x="210" y="206">About 5 minutes</text>
     <text class="muted" x="68" y="252" font-weight="700">Merges when</text>
-    <text class="ink" x="210" y="252">The agent review is clean on the</text>
+    <text class="ink" x="210" y="252">The light review is clean on the</text>
     <text class="ink" x="210" y="276">latest commit, plus one approval</text>
     <text class="muted" x="68" y="322" font-weight="700">Good for</text>
     <text class="ink" x="210" y="322">Small changes to ordinary code</text>
@@ -39,11 +39,11 @@
 
   <rect class="card" x="615" y="40" width="545" height="360" rx="14" stroke-width="1.5"/>
   <path class="vbg" d="M615 54 a14 14 0 0 1 14 -14 h517 a14 14 0 0 1 14 14 v62 h-545 z"/>
-  <text class="v" x="643" y="88" font-size="26" font-weight="700">Deep review</text>
+  <text class="v" x="643" y="88" font-size="26" font-weight="700">Deep tier</text>
   <text class="v" x="1132" y="88" font-size="15" font-weight="700" text-anchor="end">tier/deep</text>
   <g font-size="16">
     <text class="muted" x="643" y="160" font-weight="700">Who</text>
-    <text class="ink" x="785" y="160">Code owner + second reviewer</text>
+    <text class="ink" x="785" y="160">AI brief, then owner + 2nd reviewer</text>
     <text class="muted" x="643" y="206" font-weight="700">Time</text>
     <text class="ink" x="785" y="206">30 to 60 minutes</text>
     <text class="muted" x="643" y="252" font-weight="700">Merges when</text>

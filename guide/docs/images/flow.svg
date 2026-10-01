@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="640" viewBox="0 0 1200 640" role="img" aria-labelledby="t d">
   <title id="t">How a pull request moves through review</title>
-  <desc id="d">A pull request triggers Copilot review, the agent review and the tier check in parallel. The agent review can escalate the tier. The tier check sends the PR to light review or deep review, and both must pass the review-gate check before merge.</desc>
+  <desc id="d">A pull request triggers pass 1 (Copilot line comments), pass 2 (the light review, using Addy Osmani\'s skill or Claude Code\'s pr-review-toolkit) and the tier check in parallel. The light review can escalate the tier. The tier check sends the PR to an approval by one person, or to pass 3, the deep review: an AI reviewer brief and then the code owner and a second reviewer. A review-gate status enforces both before merge.</desc>
   <style>
     text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
     .bg { fill: #f5f7f6; } .card { fill: #ffffff; stroke: #d8dee2; } .ink { fill: #17212b; } .muted { fill: #55626e; }
@@ -53,8 +53,8 @@
   <text class="muted" x="420" y="158" font-size="15" text-anchor="middle">Line comments, every push</text>
 
   <rect class="card" x="290" y="282" width="260" height="96" rx="12" stroke-width="1.5"/>
-  <text class="ink" x="420" y="324" font-size="19" font-weight="700" text-anchor="middle">Pass 2: Agent review</text>
-  <text class="muted" x="420" y="350" font-size="15" text-anchor="middle">Five-axis review skill</text>
+  <text class="ink" x="420" y="324" font-size="19" font-weight="700" text-anchor="middle">Pass 2: Light review</text>
+  <text class="muted" x="420" y="350" font-size="15" text-anchor="middle">Addy's skill or pr-review-toolkit</text>
 
   <rect class="card" x="290" y="474" width="260" height="96" rx="12" stroke-width="1.5"/>
   <text class="ink" x="420" y="516" font-size="19" font-weight="700" text-anchor="middle">Tier check</text>
@@ -62,18 +62,18 @@
 
   <rect class="gbg" x="640" y="350" width="250" height="96" rx="12"/>
   <rect class="gs" x="640" y="350" width="250" height="96" rx="12" fill="none" stroke-width="1.5"/>
-  <text class="g" x="765" y="392" font-size="19" font-weight="700" text-anchor="middle">Light review</text>
+  <text class="g" x="765" y="392" font-size="19" font-weight="700" text-anchor="middle">Approval</text>
   <text class="muted" x="765" y="418" font-size="15" text-anchor="middle">One approver, about 5 min</text>
 
   <rect class="vbg" x="640" y="494" width="250" height="96" rx="12"/>
   <rect class="vs" x="640" y="494" width="250" height="96" rx="12" fill="none" stroke-width="1.5"/>
   <text class="v" x="765" y="536" font-size="19" font-weight="700" text-anchor="middle">Pass 3: Deep review</text>
-  <text class="muted" x="765" y="562" font-size="15" text-anchor="middle">Owner + second reviewer</text>
+  <text class="muted" x="765" y="562" font-size="15" text-anchor="middle">AI brief, then owner + reviewer</text>
 
   <rect class="abg" x="950" y="415" width="220" height="110" rx="12"/>
   <rect class="as" x="950" y="415" width="220" height="110" rx="12" fill="none" stroke-width="1.5"/>
   <text class="a" x="1060" y="447" font-size="19" font-weight="700" text-anchor="middle">review-gate</text>
-  <text class="muted" x="1060" y="474" font-size="14" text-anchor="middle">Light: agent review clean</text>
+  <text class="muted" x="1060" y="474" font-size="14" text-anchor="middle">Light: light review clean</text>
   <text class="muted" x="1060" y="497" font-size="14" text-anchor="middle">Deep: 2 approvals</text>
 
   <rect class="inkfill" x="995" y="560" width="130" height="48" rx="24"/>

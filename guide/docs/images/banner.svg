@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="400" viewBox="0 0 1280 400" role="img" aria-labelledby="t d">
   <title id="t">Three-Pass Code Review</title>
-  <desc id="d">Pull requests pass through Copilot and an agent review. Most continue to a light human review; a few go to a deep review by the code owner.</desc>
+  <desc id="d">Pull requests pass through Copilot (pass 1) and a light AI review (pass 2). Most then need one approval; a few go to pass 3, a deep review: an AI reviewer brief, then the code owner.</desc>
   <style>
     text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
     .bg { fill: #f5f7f6; } .card { fill: #ffffff; stroke: #d8dee2; } .ink { fill: #17212b; } .muted { fill: #55626e; }
@@ -21,8 +21,8 @@
   <rect class="bg" width="1280" height="400" rx="20"/>
   <text class="ink" x="72" y="170" font-size="46" font-weight="700" letter-spacing="-0.5">Three-Pass Code Review</text>
   <text class="ink" x="72" y="222" font-size="25">AI reads every line. People own the risk.</text>
-  <text class="muted" x="72" y="272" font-size="18">Copilot and an agent review every PR.</text>
-  <text class="muted" x="72" y="298" font-size="18">Humans go deep only where a mistake would hurt.</text>
+  <text class="muted" x="72" y="272" font-size="18">Copilot and a light AI review on every PR.</text>
+  <text class="muted" x="72" y="298" font-size="18">An AI brief and people go deep where it would hurt.</text>
 
   <!-- incoming lane -->
   <line class="rule" x1="740" y1="210" x2="1030" y2="210" stroke-width="3" stroke-linecap="round"/>
@@ -36,7 +36,7 @@
   <text class="muted" x="870" y="119" font-size="14" text-anchor="middle">Copilot</text>
   <rect class="inkfill" x="994" y="130" width="12" height="160" rx="6"/>
   <text class="ink" x="1000" y="100" font-size="15" font-weight="700" text-anchor="middle">Pass 2</text>
-  <text class="muted" x="1000" y="119" font-size="14" text-anchor="middle">Agent review</text>
+  <text class="muted" x="1000" y="119" font-size="14" text-anchor="middle">Light review</text>
 
   <!-- fork -->
   <path class="gs" d="M1006 210 C1040 210 1040 160 1074 160 L1196 160" fill="none" stroke-width="3" stroke-linecap="round"/>
@@ -49,6 +49,6 @@
   <path class="onstroke" d="M1193 160 l5 5 l9 -10" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
   <circle class="v" cx="1200" cy="262" r="14"/>
   <path class="onstroke" d="M1193 262 l5 5 l9 -10" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-  <text class="g" x="1214" y="136" font-size="15" font-weight="700" text-anchor="end">Light: one approver</text>
-  <text class="v" x="1214" y="304" font-size="15" font-weight="700" text-anchor="end">Deep: owner sign-off</text>
+  <text class="g" x="1214" y="136" font-size="15" font-weight="700" text-anchor="end">Light: one approval</text>
+  <text class="v" x="1214" y="304" font-size="15" font-weight="700" text-anchor="end">Deep: AI brief + owners</text>
 </svg>
