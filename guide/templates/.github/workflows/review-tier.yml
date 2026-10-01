@@ -2,7 +2,7 @@
 #
 # - Labels each PR tier/light or tier/deep and keeps one comment explaining why.
 # - Publishes the `review-gate` commit status. Make it a required status check:
-#     light: passes once the agent review is clean on the latest commit
+#     light: passes once the light review (pass 2) is clean on the latest commit
 #     deep:  passes once enough people approved the latest commit
 #
 # Why pull_request_target: it runs this workflow from the BASE branch with a
@@ -12,7 +12,7 @@
 # reads the policy from the PR's base branch. Never add a checkout of the PR
 # head to this workflow.
 #
-# It also re-runs when the agent review finishes or someone submits a review
+# It also re-runs when the light review finishes or someone submits a review
 # (via workflow_run), because labels and reviews added by other workflows
 # don't trigger runs on their own.
 
@@ -22,7 +22,7 @@ on:
   pull_request_target:
     types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
   workflow_run:
-    workflows: ["Agent review", "Review submitted"]   # must match the name: in those workflows
+    workflows: ["Light review", "Review submitted"]   # must match the name: in those workflows
     types: [completed]
 
 permissions:

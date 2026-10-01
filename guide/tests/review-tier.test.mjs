@@ -13,7 +13,7 @@ import {
   decideGate,
   canRemoveEscalation,
   countApprovals,
-  parseAgentComment,
+  parseLightComment,
   renderComment,
   code,
   MARKER,
@@ -88,7 +88,7 @@ test('changes to the review setup are always deep', () => {
   for (const file of [
     '.github/workflows/ci.yml',
     '.github/review-policy.yml',
-    '.claude/review/agent-review.md',
+    '.claude/review/light-review.md',
     '.claude/review/skills/code-review-and-quality/SKILL.md',
     '.claude/skills/anything/SKILL.md',
     '.agents/skills/x/SKILL.md',
@@ -160,17 +160,17 @@ test('first-time contributors are deep', () => {
   assert.deepEqual(rules(r), ['first-time']);
 });
 
-test('forks and skipped agent reviews are deep', () => {
+test('forks and skipped light reviews are deep', () => {
   assert.deepEqual(rules(decide([f('src/ui/a.ts', 2)], { isFork: true })), ['fork']);
-  assert.deepEqual(rules(decide([f('src/ui/a.ts', 2)], { labels: ['skip-agent-review'] })), ['no-agent-review']);
+  assert.deepEqual(rules(decide([f('src/ui/a.ts', 2)], { labels: ['skip-light-review'] })), ['no-light-review']);
 });
 
-test('gate: light needs a clean agent review on the head commit', () => {
+test('gate: light needs a clean light review on the head commit', () => {
   const head = 'abcdef1234567890abcdef1234567890abcdef12';
-  assert.equal(decideGate({ tier: 'light', policy, headSha: head, agent: null }).state, 'pending');
-  assert.equal(decideGate({ tier: 'light', policy, headSha: head, agent: { sha: head, result: 'clean' } }).state, 'success');
-  assert.equal(decideGate({ tier: 'light', policy, headSha: head, agent: { sha: 'ffffff1', result: 'clean' } }).state, 'pending', 'stale review');
-  assert.equal(decideGate({ tier: 'light', policy, headSha: head, agent: { sha: head, result: 'failed' } }).state, 'pending');
+  assert.equal(decideGate({ tier: 'light', policy, headSha: head, light: null }).state, 'pending');
+  assert.equal(decideGate({ tier: 'light', policy, headSha: head, light: { sha: head, result: 'clean' } }).state, 'success');
+  assert.equal(decideGate({ tier: 'light', policy, headSha: head, light: { sha: 'ffffff1', result: 'clean' } }).state, 'pending', 'stale review');
+  assert.equal(decideGate({ tier: 'light', policy, headSha: head, light: { sha: head, result: 'failed' } }).state, 'pending');
 });
 
 test('gate: deep needs enough approvals of the head commit', () => {
@@ -196,9 +196,9 @@ test('only maintainers, never the author, can remove an escalation', () => {
   assert.equal(canRemoveEscalation({ sender: 'dev', prAuthor: 'author', role: 'write', policy }), false);
 });
 
-test('agent comment marker and file-name escaping', () => {
-  assert.deepEqual(parseAgentComment('<!-- agent-review sha=abc1234 result=clean -->\n### ...'), { sha: 'abc1234', result: 'clean' });
-  assert.equal(parseAgentComment('hello'), null);
+test('light review comment marker and file-name escaping', () => {
+  assert.deepEqual(parseLightComment('<!-- light-review sha=abc1234 result=clean -->\n### ...'), { sha: 'abc1234', result: 'clean' });
+  assert.equal(parseLightComment('hello'), null);
   assert.equal(code('a`b\n@team'), '`a?b?@team`');
 });
 
@@ -221,7 +221,7 @@ test('comment starts with the marker and explains the tier', () => {
   assert.match(deep, /Review tier: Deep/);
   assert.match(deep, /@your-org\/payments/);
   assert.match(deep, /deep review checklist\]\(https:\/\/example.com\/deep\)/);
-  const light = renderComment(decide([f('src/ui/a.ts', 3)]), { lightChecklistUrl: 'https://example.com/light' });
+  const light = renderComment(decide([f('src/ui/a.ts', 3)]), { approvalChecklistUrl: 'https://example.com/light' });
   assert.match(light, /Review tier: Light/);
   assert.match(light, /`escalate\/deep`/);
 });

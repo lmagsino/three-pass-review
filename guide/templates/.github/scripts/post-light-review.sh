@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Posts the agent review (pass 2) as one sticky PR comment, and escalates the
+# Posts the light review (pass 2) as one sticky PR comment, and escalates the
 # PR to deep review when the agent recommends it or reports Critical or
 # Required findings. The agent never touches labels itself: this script does,
 # from the agent's structured result, and it can only ever ADD the escalate
 # label. The tier check (review-tier.yml) then moves the PR to deep.
 #
 # The comment's first line records which commit was reviewed and the result,
-# e.g. <!-- agent-review sha=abc123... result=clean -->. The tier check's merge
+# e.g. <!-- light-review sha=abc123... result=clean -->. The tier check's merge
 # gate reads it: a light PR passes only when the review is clean on its latest commit.
 #
 # Exits non-zero when the agent didn't finish, so the run shows as failed.
@@ -36,7 +36,7 @@ if [ "${OUTCOME:-}" = "success" ] && [ -n "$result" ] && jq -e 'type == "object"
   fi
   verdict=$([ "$escalate" = true ] && echo escalated || echo clean)
   {
-    echo "<!-- agent-review sha=$HEAD_SHA result=$verdict -->"
+    echo "<!-- light-review sha=$HEAD_SHA result=$verdict -->"
     jq -r '.summary_markdown // ""' <<<"$result"
     if [ "$escalate" = true ]; then
       echo
@@ -50,16 +50,16 @@ if [ "${OUTCOME:-}" = "success" ] && [ -n "$result" ] && jq -e 'type == "object"
   } >"$body_file"
 else
   cat >"$body_file" <<EOF
-<!-- agent-review sha=$HEAD_SHA result=failed -->
-### Agent review (pass 2): didn't finish
+<!-- light-review sha=$HEAD_SHA result=failed -->
+### Light review (pass 2): didn't finish
 
-The agent review of commit ${HEAD_SHA:0:7} failed or returned no result ([run log](${RUN_URL:-#})). Until it completes, this PR can't take the light path. Re-run the **Agent review** workflow, or add the \`$LABEL_ESCALATE\` label to review it as deep.
+The light review of commit ${HEAD_SHA:0:7} failed or returned no result ([run log](${RUN_URL:-#})). Until it completes, this PR can't take the light path. Re-run the **Light review** workflow, or add the \`$LABEL_ESCALATE\` label to review it as deep.
 EOF
 fi
 
 # One sticky comment per PR: update ours if it exists, otherwise create it.
 ids=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
-  --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("<!-- agent-review"))) | .id')
+  --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("<!-- light-review"))) | .id')
 id="${ids%%$'\n'*}"
 if [ -n "$id" ]; then
   gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F "body=@$body_file" >/dev/null
@@ -71,10 +71,10 @@ if [ "$escalate" = true ]; then
   gh api -X POST "repos/$GITHUB_REPOSITORY/issues/$PR/labels" -f "labels[]=$LABEL_ESCALATE" >/dev/null
   echo "Escalated PR #$PR to deep review."
 elif [ "$finished" = true ]; then
-  echo "Agent review is clean; no escalation."
+  echo "Light review is clean; no escalation."
 fi
 
 if [ "$finished" != true ]; then
-  echo "::error::The agent review didn't finish. See the agent step's log." >&2
+  echo "::error::The light review didn't finish. See the agent step's log." >&2
   exit 1
 fi

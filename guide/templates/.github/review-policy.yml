@@ -10,16 +10,16 @@
 
 version: 1
 
-# Label names. If you rename them, also update .github/workflows/agent-review.yml
+# Label names. If you rename them, also update .github/workflows/light-review.yml
 # (the LABEL_ESCALATE env and the skip label in the job's `if:`).
 labels:
   light: tier/light              # managed by the tier check
   deep: tier/deep                # managed by the tier check
-  escalate: escalate/deep        # sticky: added by the agent review or a person, never removed by automation
+  escalate: escalate/deep        # sticky: added by the light review or a person, never removed by automation
   split: needs-split             # PR is past split_changed_lines
-  skip_agent: skip-agent-review  # skips pass 2, which also makes the PR deep
+  skip_light: skip-light-review  # skips pass 2, which also makes the PR deep
 
-# The merge gate (`review-gate` status). Light PRs pass once the agent review is
+# The merge gate (`review-gate` status). Light PRs pass once the light review is
 # clean on the latest commit. Deep PRs pass once this many people (not the
 # author, not bots) have approved the latest commit. CODEOWNERS still decides
 # WHO must be among them on sensitive paths.
@@ -62,7 +62,7 @@ rules:
   dependency_changes_are_deep: true
   quality_gate_changes_are_deep: true    # lint/test/coverage config can be loosened to get green
   first_time_contributors_are_deep: true
-  fork_prs_are_deep: true                # the agent review doesn't run on forks, so light can't be cleared
+  fork_prs_are_deep: true                # the light review doesn't run on forks, so light can't be cleared
 
 # Lines in these files don't count toward size (generated code, lockfiles,
 # snapshots). The files still count toward the file count and spread.

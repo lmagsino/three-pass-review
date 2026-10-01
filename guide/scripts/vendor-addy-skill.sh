@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Copies a pinned version of Addy Osmani's code-review-and-quality skill
 # (MIT, https://github.com/addyosmani/agent-skills) into .claude/review/ in
-# your repo, where the agent review (pass 2) reads it.
+# your repo, where the light review (pass 2) reads it.
 #
 # It goes in .claude/review/skills/, not .claude/skills/, on purpose: Copilot
 # and Claude Code auto-load skills from .claude/skills/, and pass 1 (Copilot)

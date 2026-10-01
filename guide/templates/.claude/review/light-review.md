@@ -1,4 +1,4 @@
-# Agent review (pass 2 of 3)
+# Light review (pass 2 of 3)
 
 You are the second reviewer on this pull request.
 
@@ -75,7 +75,7 @@ Return the structured output. Do not also post the summary as a comment: a scrip
 - `summary_markdown`: in exactly this shape, and keep it short:
 
 ```markdown
-### Agent review (pass 2): <Clean | Needs attention>
+### Light review (pass 2): <Clean | Needs attention>
 
 **Recommendation:** <light | deep>: <one line why>
 

@@ -46,7 +46,7 @@ while IFS= read -r -d '' src; do
   cp "$src" "$dest"
   copied=$((copied + 1))
 done < <(find "$here/templates" -type f -print0)
-chmod +x "$target/.github/scripts/post-agent-review.sh" 2>/dev/null || true
+chmod +x "$target/.github/scripts/post-light-review.sh" 2>/dev/null || true
 
 echo "Copied $copied files into $target"
 if [ "${#skipped[@]}" -gt 0 ]; then
@@ -71,7 +71,7 @@ Next steps (see docs/setup.md for details):
   4. Repository ruleset:     require a PR, 1 approval, review from Code Owners,
                              approval of the most recent push, and turn on
                              "Automatically request Copilot code review".
-  5. Commit on a branch and open a PR. The tier check and agent review only start
+  5. Commit on a branch and open a PR. The tier check and light review only start
      working after this PR is merged (they read from the base branch), so have an
      eng lead review this one by hand with .github/review/deep-review-checklist.md.
   6. After merge, add `review-gate` as a required status check in the ruleset.

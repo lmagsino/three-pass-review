@@ -5,19 +5,19 @@
 //    .github/review-policy.yml on the PR's BASE branch, so a PR can't loosen
 //    the rules for its own review. Automation can raise a tier, never lower it.
 // 2. Gate: publishes a `review-gate` commit status on the PR's head commit.
-//      light: passes once the agent review is clean on this exact commit
+//      light: passes once the light review (pass 2) is clean on this exact commit
 //      deep:  passes once enough people approved this exact commit
 //    Make `review-gate` a required status check to enforce it.
 //
 // Runs from .github/workflows/review-tier.yml on `pull_request_target` and on
-// `workflow_run` (after the agent review or a submitted review). It reads the
+// `workflow_run` (after the light review or a submitted review). It reads the
 // PR through the API and never checks out or runs PR code. It is the only
 // thing that sets the tier labels.
 //
 // Local dry run (no network, no token):
 //   node review-tier.mjs --dry-run --policy policy.json --files files.json \
 //     [--labels "escalate/deep,bug"] [--author-association MEMBER] [--changed-files 12] \
-//     [--fork] [--agent clean|escalated|failed|none] [--approvals 1] [--json]
+//     [--fork] [--light clean|escalated|failed|none] [--approvals 1] [--json]
 //
 // files.json is the array returned by GET /repos/{owner}/{repo}/pulls/{n}/files
 // (only filename, previous_filename, status, additions and deletions are used).
@@ -29,7 +29,7 @@ import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
 export const MARKER = '<!-- review-tier -->';
-export const AGENT_MARKER = /^<!-- agent-review(?: sha=([0-9a-f]{7,40}))?(?: result=(clean|escalated|failed))? -->/;
+export const LIGHT_MARKER = /^<!-- light-review(?: sha=([0-9a-f]{7,40}))?(?: result=(clean|escalated|failed))? -->/;
 const STATUS_CONTEXT = 'review-gate';
 
 // Changes to the review setup itself are always deep, whatever the policy
@@ -59,7 +59,7 @@ const DEFAULTS = {
     deep: 'tier/deep',
     escalate: 'escalate/deep',
     split: 'needs-split',
-    skip_agent: 'skip-agent-review',
+    skip_light: 'skip-light-review',
   },
   ignore_for_size: [],
   sensitive_paths: [],
@@ -185,15 +185,15 @@ export function decideTier({
   if (labels.includes(p.labels.escalate)) {
     add(
       'escalated',
-      `Escalated with the ${code(p.labels.escalate)} label, by the agent review or a person. ` +
+      `Escalated with the ${code(p.labels.escalate)} label, by the light review or a person. ` +
         'Automation never removes this label; only a maintainer can, with a comment saying why.'
     );
   }
-  if (labels.includes(p.labels.skip_agent)) {
-    add('no-agent-review', `Has the ${code(p.labels.skip_agent)} label. Light review needs a clean agent review.`);
+  if (labels.includes(p.labels.skip_light)) {
+    add('no-light-review', `Has the ${code(p.labels.skip_light)} label. The light tier needs a clean light review.`);
   }
   if (isFork && p.rules.fork_prs_are_deep) {
-    add('fork', 'Comes from a fork. The agent review doesn\'t run on forks, so there\'s no clean agent review to rely on.');
+    add('fork', 'Comes from a fork. The light review doesn\'t run on forks, so there\'s no clean light review to rely on.');
   }
 
   // 2. The review setup itself.
@@ -313,11 +313,11 @@ export function decideTier({
 
 // ---------------------------------------------------------------------------
 // The merge gate. Pure function.
-//   agent: { sha, result } parsed from the agent review comment, or null
+//   light: { sha, result } parsed from the light review comment, or null
 //   approvals: number of people (not the author, not bots) whose latest
 //              review approves the current head commit
 // ---------------------------------------------------------------------------
-export function decideGate({ tier, policy, headSha, agent, approvals = 0 }) {
+export function decideGate({ tier, policy, headSha, light, approvals = 0 }) {
   const p = withDefaults(policy);
   if (tier === 'deep') {
     const need = p.deep_review.min_approvals;
@@ -329,17 +329,17 @@ export function decideGate({ tier, policy, headSha, agent, approvals = 0 }) {
       description: `Deep review: ${approvals} of ${need} approvals on the latest commit.`,
     };
   }
-  const onHead = agent && agent.sha && headSha && headSha.startsWith(agent.sha);
-  if (onHead && agent.result === 'clean') {
-    return { state: 'success', description: 'Light review: agent review is clean on this commit.' };
+  const onHead = light && light.sha && headSha && headSha.startsWith(light.sha);
+  if (onHead && light.result === 'clean') {
+    return { state: 'success', description: 'Light tier: the light review is clean on this commit.' };
   }
-  if (onHead && agent.result === 'failed') {
+  if (onHead && light.result === 'failed') {
     return {
       state: 'pending',
-      description: `Light review: the agent review didn't finish on ${short(headSha)}. Re-run it, or escalate.`,
+      description: `Light tier: the light review didn't finish on ${short(headSha)}. Re-run it, or escalate.`,
     };
   }
-  return { state: 'pending', description: `Light review: waiting for a clean agent review of ${short(headSha)}.` };
+  return { state: 'pending', description: `Light tier: waiting for a clean light review of ${short(headSha)}.` };
 }
 
 // Who may take the escalate label off a PR. Pure function.
@@ -360,15 +360,15 @@ export function countApprovals(reviews, { headSha, prAuthor }) {
   return [...latest.values()].filter((r) => r.state === 'APPROVED' && r.commit_id === headSha).length;
 }
 
-export function parseAgentComment(body) {
-  const m = AGENT_MARKER.exec(String(body || ''));
+export function parseLightComment(body) {
+  const m = LIGHT_MARKER.exec(String(body || ''));
   return m ? { sha: m[1] || null, result: m[2] || null } : null;
 }
 
 // ---------------------------------------------------------------------------
 // The sticky PR comment
 // ---------------------------------------------------------------------------
-export function renderComment(result, { lightChecklistUrl, deepChecklistUrl, policyRef, gate, notes = [] } = {}) {
+export function renderComment(result, { approvalChecklistUrl, deepChecklistUrl, policyRef, gate, notes = [] } = {}) {
   const { tier, reasons, owners, stats, labels } = result;
   const lines = [MARKER];
 
@@ -387,9 +387,9 @@ export function renderComment(result, { lightChecklistUrl, deepChecklistUrl, pol
     lines.push(
       '### Review tier: Light',
       '',
-      'No deep-review rules matched. Once the agent review is clean on the latest commit and every Critical or ' +
+      'No deep-review rules matched. Once the light review is clean on the latest commit and every Critical or ' +
         'Required comment is fixed or answered, one approver can merge after the light check' +
-        (lightChecklistUrl ? ` ([light review checklist](${lightChecklistUrl}))` : '') +
+        (approvalChecklistUrl ? ` ([approval checklist](${approvalChecklistUrl}))` : '') +
         '.',
       '',
       `Anyone can raise this to deep by adding the ${code(labels.escalate)} label.`
@@ -532,12 +532,12 @@ async function dryRun(args) {
     isFork: Boolean(args.fork),
   });
   const headSha = '0123456789abcdef0123456789abcdef01234567';
-  const agentResult = args.agent && args.agent !== 'none' ? args.agent : null;
+  const lightResult = args.light && args.light !== 'none' ? args.light : null;
   const gate = decideGate({
     tier: result.tier,
     policy,
     headSha,
-    agent: agentResult ? { sha: headSha, result: agentResult } : null,
+    light: lightResult ? { sha: headSha, result: lightResult } : null,
     approvals: Number(args.approvals || 0),
   });
   if (args.json) {
@@ -613,20 +613,20 @@ async function main() {
     isFork,
   });
 
-  // Gate inputs: the agent's verdict on this commit, and approvals of this commit.
+  // Gate inputs: the light review's verdict on this commit, and approvals of this commit.
   const comments = await api.paginate(`/repos/${repo}/issues/${pr.number}/comments`);
-  const agentComment = comments.find((c) => isActionsBot(c) && parseAgentComment(c.body));
-  const agent = agentComment ? parseAgentComment(agentComment.body) : null;
+  const lightComment = comments.find((c) => isActionsBot(c) && parseLightComment(c.body));
+  const light = lightComment ? parseLightComment(lightComment.body) : null;
   const reviews = await api.paginate(`/repos/${repo}/pulls/${pr.number}/reviews`);
   const approvals = countApprovals(reviews, { headSha: pr.head.sha, prAuthor: pr.user?.login });
-  const gate = decideGate({ tier: result.tier, policy, headSha: pr.head.sha, agent, approvals });
+  const gate = decideGate({ tier: result.tier, policy, headSha: pr.head.sha, light, approvals });
 
   const baseRef = pr.base.ref;
   const blob = (file) => `${server}/${repo}/blob/${encodeURIComponent(baseRef)}/${file}`;
   const checklist = blob(`.github/review/${result.tier}-review-checklist.md`);
   const body = renderComment(result, {
     policyRef: baseRef,
-    lightChecklistUrl: blob('.github/review/light-review-checklist.md'),
+    approvalChecklistUrl: blob('.github/review/approval-checklist.md'),
     deepChecklistUrl: blob('.github/review/deep-review-checklist.md'),
     gate,
     notes,

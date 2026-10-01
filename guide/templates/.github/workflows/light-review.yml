@@ -1,4 +1,4 @@
-# Pass 2: the agent review.
+# Pass 2: the light review.
 #
 # A second AI reviewer, different from Copilot, follows Addy Osmani's
 # code-review-and-quality skill: five-axis review, blast radius, every finding
@@ -10,12 +10,12 @@
 #   before it starts, so a PR can't rewrite its own reviewer.
 # - The agent can read code and post inline comments. It can't approve, push,
 #   or change labels. Its verdict comes back as structured JSON, and a plain
-#   script (post-agent-review.sh) posts the summary and escalates.
+#   script (post-light-review.sh) posts the summary and escalates.
 # - Escalation only goes up. Nothing here can move a PR from deep to light.
 # - Fork PRs are skipped (pull_request runs from forks get no secrets). The
 #   policy routes them to deep review instead.
 
-name: Agent review   # review-tier.yml listens for this name
+name: Light review   # review-tier.yml listens for this name
 
 on:
   pull_request:
@@ -29,7 +29,7 @@ permissions:
   # Microsoft Foundry or workload identity federation instead of an API key.
 
 concurrency:
-  group: agent-review-${{ github.event.pull_request.number }}
+  group: light-review-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 env:
@@ -38,12 +38,12 @@ env:
 jobs:
   review:
     # Skip drafts, forks, Dependabot (it gets no secrets) and opted-out PRs.
-    # The skip label must match labels.skip_agent in .github/review-policy.yml.
+    # The skip label must match labels.skip_light in .github/review-policy.yml.
     if: >-
       github.event.pull_request.draft == false &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       github.actor != 'dependabot[bot]' &&
-      !contains(github.event.pull_request.labels.*.name, 'skip-agent-review')
+      !contains(github.event.pull_request.labels.*.name, 'skip-light-review')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -51,7 +51,7 @@ jobs:
         with:
           fetch-depth: 0   # full history, so the agent can use git log and git blame for context
 
-      - name: Agent review
+      - name: Light review
         id: review
         continue-on-error: true   # the next step reports failures and fails the job
         uses: anthropics/claude-code-action@v1
@@ -68,7 +68,7 @@ jobs:
             BASE BRANCH: ${{ github.event.pull_request.base.ref }}
 
             You are pass 2 of a three-pass code review. Read
-            .claude/review/agent-review.md and follow it exactly. It tells you
+            .claude/review/light-review.md and follow it exactly. It tells you
             to apply .claude/review/skills/code-review-and-quality/SKILL.md.
             The PR is checked out in the current directory.
           # To let the agent run tests while verifying findings, add your test
@@ -86,4 +86,4 @@ jobs:
           OUTCOME: ${{ steps.review.outcome }}
           RESULT: ${{ steps.review.outputs.structured_output }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: bash .github/scripts/post-agent-review.sh
+        run: bash .github/scripts/post-light-review.sh
