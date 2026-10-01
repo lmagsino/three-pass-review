@@ -86,7 +86,7 @@ defects:                       # empty for clean cases
 notes: "Fix commit allow-lists sort columns."
 ```
 
-`rake eval:validate` checks every case: the schema, that the diff applies cleanly or parses, and that each defect's lines fall inside a changed hunk.
+`rake eval:validate` checks every case: the schema, a permissive license, that the diff parses and applies to `context/` (every added line is at its line number in the head-version copy), and that each defect's lines fall inside a changed hunk. Planted cases also need a `notes` entry saying how the bug was planted, and real cases need `fixed_by`.
 
 ## Matching findings to defects
 
@@ -96,22 +96,24 @@ A reconciled finding **matches** a defect when:
 2. its line range overlaps the defect's lines, allowing a gap of up to 3 lines, and
 3. its category matches. A matching subcategory is recorded too, but not required.
 
-Report two numbers: **strict** (all three conditions) and **lenient** (file and lines only). One finding can match at most one defect, and one defect counts as caught once.
+Report two numbers: **strict** (all three conditions) and **lenient** (file and lines only). One finding can match at most one defect, and one defect counts as caught once. Findings are matched in the reviewer's own ranking order, so a defect goes to the highest-ranked finding that hits it.
 
-Anything that matches no defect is **unmatched**. Unmatched isn't automatically wrong, because PRs often have real problems nobody wrote down.
+**Across the 3 runs**, a defect counts as caught when it's caught in a majority of its case's runs. That keeps n equal to the number of defects, so the Wilson interval means what it says. Pooling every run instead would triple n and make the interval look three times as certain as the data allows. The per-run spread is reported as stability.
+
+Anything that matches no defect, even leniently, is **unmatched**. Unmatched isn't automatically wrong, because PRs often have real problems nobody wrote down. A finding on a defect's lines with the wrong category counts as matched for precision, since it points at a real problem, but only lenient recall gives it credit.
 
 ## Labeling (what makes precision honest)
 
-1. `rake eval:run` writes every unmatched finding to `evals/labels/<run-id>.yml` with `label: unlabeled`.
+1. `rake eval:run` writes every unmatched finding to `evals/labels/<run-id>.yml` with `label: unlabeled`. That covers the reconciled findings and each pass's own findings before reconciliation, since per-pass precision needs both.
 2. A person labels each one:
    - `real`: a real problem that isn't in the ground truth,
    - `false_positive`: wrong,
    - `nitpick`: true, but not worth a comment,
    - `unclear`.
 3. Labels are keyed by a hash of the case, file, lines and title, so they carry over to later runs when the same finding appears again.
-4. `rake eval:report` refuses to print precision while more than 5% of findings are unlabeled. Until then it reports "unverified findings per PR".
+4. `rake eval:report` refuses to print precision while more than 5% of findings are unlabeled. Until then it reports "unverified findings per PR". It rescores every run with the current labels, so labeling after a run is enough; there's no need to re-run.
 
-**Precision** = (matched + `real`) ÷ (all reconciled findings − `unclear`).
+**Precision** = (matched + `real`) ÷ (all reconciled findings − `unclear`), pooled over every run.
 
 ## Configurations compared
 
@@ -127,7 +129,7 @@ Each configuration runs on every case, **3 times**, because model output varies 
 Also report:
 
 - **Per-pass recall before reconciliation,** for `independent` and `chained`. Does a pass find bugs in its own category? Does it find bugs outside it?
-- **A threshold sweep:** precision and recall at confidence thresholds 0.3 to 0.9, to show the trade-off and justify the default.
+- **A threshold sweep:** precision and recall at confidence thresholds 0.3 to 0.9, to show the trade-off and justify the default. It's computed by re-reconciling each run's raw pass findings at each threshold, so it needs no extra API calls.
 
 ## Metrics and statistics
 
@@ -135,8 +137,8 @@ Also report:
 |---|---|
 | Recall (overall, per category, per subcategory) | Caught defects ÷ defects |
 | Precision | See above |
-| False positives per clean PR | `false_positive` labels on clean cases ÷ number of clean cases |
-| Unverified findings per PR | Unlabeled unmatched findings ÷ cases (shown until labeling is done) |
+| False positives per clean PR | `false_positive` labels on clean cases ÷ reviews of clean cases (clean cases × runs), so it reads as "per review of a clean PR" |
+| Unverified findings per PR | Unlabeled unmatched findings ÷ reviews (cases × runs), shown until labeling is done |
 | Cost per review | USD per case: median, p90, max |
 | Ceiling hits | Cases where the cost ceiling degraded or refused the review |
 | Latency | Seconds per review: median, p90 |
@@ -159,7 +161,14 @@ Every run records:
 - the config,
 - the date.
 
-Results go in `evals/results/<date>-<config>-<model>/`, containing `summary.json`, `summary.md` and raw per-case outputs.
+Results go in `evals/results/<date>-<config>-<model>/`, containing `records.json` (the raw output of every review), `summary.json`, `summary.md` and `misses.md`. Each run's metadata says which client produced it.
+
+Two guards keep invented numbers out of the README:
+
+- **Fake runs never reach it.** `EVAL_FAKE=DIR rake eval:run[...]` replays fixture responses, writes to `tmp/eval-fake/`, and is marked `client: fake`. `eval:report` publishes only runs marked `client: anthropic`.
+- **Runs on an older dataset version aren't published.** If cases change after a run, it has to be re-run.
+
+A real `rake eval:run` makes no API calls unless `CONFIRM=yes` is set. Without it, the task prints the most the run could spend (cases × runs × `max_cost_usd`) and stops.
 
 Anyone can rerun everything with their own API key:
 
@@ -180,7 +189,8 @@ evals/
   labels/              human labels for unmatched findings
   results/             committed summaries (raw outputs can be gitignored if large)
 lib/three_pass_review/eval/
-  case.rb, loader.rb, matcher.rb, labels.rb, metrics.rb (incl. Wilson), runner.rb, report.rb
+  case.rb (case, defect, dataset loader and version), matcher.rb, labels.rb, metrics.rb (incl. Wilson),
+  scorer.rb (all the metrics above), summary.rb, runner.rb, report.rb
 ```
 
 Unit tests cover the matcher, Wilson intervals, label carry-over and the report writer, all with fixtures and no network.
