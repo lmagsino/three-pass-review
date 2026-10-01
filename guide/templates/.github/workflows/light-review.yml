@@ -1,6 +1,11 @@
 # Pass 2: the light review.
 #
-# A second AI reviewer, different from Copilot, follows Addy Osmani's
+# A second AI reviewer, different from Copilot. The team picks which one with
+# light_review.reviewer in .github/review-policy.yml (read from the BASE branch,
+# so a PR can't pick its own reviewer):
+#   addy               Addy Osmani's code-review-and-quality skill (vendored, pinned)
+#   pr-review-toolkit  Claude Code's pr-review-toolkit plugin (installed each run)
+# Either way it follows Addy Osmani's
 # code-review-and-quality skill: five-axis review, blast radius, every finding
 # verified before it's posted, and a tier recommendation.
 #
@@ -51,6 +56,26 @@ jobs:
         with:
           fetch-depth: 0   # full history, so the agent can use git log and git blame for context
 
+      - name: Pick the reviewer from the base branch's policy
+        id: pick
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          reviewer=$(git show "origin/$BASE_REF:.github/review-policy.yml" 2>/dev/null \
+            | yq -r '.light_review.reviewer // "addy"' 2>/dev/null || true)
+          reviewer=${reviewer:-addy}
+          case "$reviewer" in
+            addy) plugins="" ;;
+            pr-review-toolkit) plugins="pr-review-toolkit@claude-code-plugins" ;;
+            *) echo "::error::Unknown light_review.reviewer '$reviewer' in .github/review-policy.yml (use addy or pr-review-toolkit)."; exit 1 ;;
+          esac
+          echo "Light reviewer: $reviewer"
+          {
+            echo "method=.claude/review/methods/$reviewer.md"
+            echo "plugins=$plugins"
+            echo "marketplaces=${plugins:+https://github.com/anthropics/claude-code.git}"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Light review
         id: review
         continue-on-error: true   # the next step reports failures and fails the job
@@ -59,6 +84,8 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           # The workflow token, so no extra GitHub App is needed. Comments are posted as github-actions[bot].
           github_token: ${{ github.token }}
+          plugin_marketplaces: ${{ steps.pick.outputs.marketplaces }}
+          plugins: ${{ steps.pick.outputs.plugins }}
           # PRs pushed by bots or coding agents (Renovate, Copilot's coding agent, …) need their
           # bot usernames listed here, or the action stops for them and the PR can't take the light path.
           # allowed_bots: "renovate[bot]"
@@ -68,13 +95,14 @@ jobs:
             BASE BRANCH: ${{ github.event.pull_request.base.ref }}
 
             You are pass 2 of a three-pass code review. Read
-            .claude/review/light-review.md and follow it exactly. It tells you
+            .claude/review/light-review.md and follow it exactly.
+            Your review method: ${{ steps.pick.outputs.method }} It tells you
             to apply .claude/review/skills/code-review-and-quality/SKILL.md.
             The PR is checked out in the current directory.
           # To let the agent run tests while verifying findings, add your test
           # command to --allowedTools, e.g. Bash(npm test:*) or Bash(pytest:*).
           claude_args: |
-            --allowedTools "Read,Glob,Grep,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git blame:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/comments:*),mcp__github_inline_comment__create_inline_comment"
+            --allowedTools "Read,Glob,Grep,Task,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git blame:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/comments:*),mcp__github_inline_comment__create_inline_comment"
             --json-schema '{"type":"object","properties":{"recommended_tier":{"type":"string","enum":["light","deep"]},"escalation_reasons":{"type":"array","items":{"type":"string"}},"critical_count":{"type":"integer","minimum":0},"required_count":{"type":"integer","minimum":0},"optional_count":{"type":"integer","minimum":0},"summary_markdown":{"type":"string"}},"required":["recommended_tier","escalation_reasons","critical_count","required_count","summary_markdown"]}'
 
       - name: Post summary, escalate if needed

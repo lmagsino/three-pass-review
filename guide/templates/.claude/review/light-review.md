@@ -17,7 +17,9 @@ Your output is a sensor reading, not a verdict. You never approve a PR. You repo
 
 ## 1. Load the method
 
-Read `.claude/review/skills/code-review-and-quality/SKILL.md` (Addy Osmani's code-review-and-quality skill, pinned) and apply it: the five axes (correctness, readability, architecture, security, performance), its review order, and its severity labels (**Critical**, Required with no prefix, **Consider**/**Optional**, **Nit**, **FYI**). Its security and performance checklists are in `.claude/review/references/` if you need them.
+Your prompt names a method file in `.claude/review/methods/`. The team picks it with `light_review.reviewer` in `.github/review-policy.yml`. Read it and apply it.
+
+Whichever method you use, the rest of this file still holds: the ground rules, the review order, the inline-comment rules, the tier recommendation and the structured output.
 
 ## 2. Get the change
 

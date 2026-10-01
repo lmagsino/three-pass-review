@@ -89,6 +89,7 @@ test('changes to the review setup are always deep', () => {
     '.github/workflows/ci.yml',
     '.github/review-policy.yml',
     '.claude/review/light-review.md',
+    '.claude/review/methods/pr-review-toolkit.md',
     '.claude/review/skills/code-review-and-quality/SKILL.md',
     '.claude/skills/anything/SKILL.md',
     '.agents/skills/x/SKILL.md',

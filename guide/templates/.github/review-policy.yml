@@ -10,6 +10,12 @@
 
 version: 1
 
+# Pass 2, the light review: which AI reviewer runs on every ready PR.
+#   addy               Addy Osmani's code-review-and-quality skill, vendored and pinned (default)
+#   pr-review-toolkit  Claude Code's pr-review-toolkit plugin, installed from anthropics/claude-code on each run
+light_review:
+  reviewer: addy
+
 # Label names. If you rename them, also update .github/workflows/light-review.yml
 # (the LABEL_ESCALATE env and the skip label in the job's `if:`).
 labels:
