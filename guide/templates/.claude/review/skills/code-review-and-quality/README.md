@@ -1,6 +1,6 @@
 # code-review-and-quality (vendored)
 
-This folder holds a pinned copy of Addy Osmani's **code-review-and-quality** skill from [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) (MIT). The agent review (pass 2) follows it.
+This folder holds a pinned copy of Addy Osmani's **code-review-and-quality** skill from [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) (MIT). The light review (pass 2) follows it when `light_review.reviewer` is `addy`.
 
 It isn't included in this template. Fetch it with:
 
