@@ -1,0 +1,9 @@
+diff --git a/db.sql b/db.sql
+index 7c1077c..614e98e 100644
+--- a/db.sql
++++ b/db.sql
+@@ -1,3 +1,3 @@
+ SELECT 1;
+--- old comment
++++ new marker
+ SELECT 2;

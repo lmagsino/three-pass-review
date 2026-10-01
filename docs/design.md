@@ -206,6 +206,7 @@ passes:
 context:
   lines_around_hunk: 30
   max_excerpt_bytes: 60000
+  max_conventions_bytes: 20000    # conventions files share this budget, in the order listed
 pricing:                          # USD per million tokens; copy from Anthropic's pricing page and date it
   claude-sonnet-5-5: { input: null, output: null }
 ```
