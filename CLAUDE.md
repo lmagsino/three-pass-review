@@ -43,7 +43,9 @@ bundle exec rake                      # tests + standardrb
 bundle exec exe/threepass review --diff path/to.patch --repo . --format markdown
 THREEPASS_FAKE=test/fixtures/llm/basic bundle exec exe/threepass review --diff test/fixtures/diffs/basic.patch
 bundle exec rake eval:validate
-bundle exec rake "eval:run[independent]"   # needs ANTHROPIC_API_KEY
+CONFIRM=yes bundle exec rake "eval:run[independent]"   # paid: needs ANTHROPIC_API_KEY; without CONFIRM it only prints the spend bound
+EVAL_FAKE=test/fixtures/eval_fake bundle exec rake "eval:run[independent]"   # no API; writes to tmp/eval-fake/
+bundle exec rake smoke                # one real review of a fixture diff (paid, under max_cost_usd)
 bundle exec rake eval:report
 (cd guide && node --test)             # the guide kit's own tests
 ```

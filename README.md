@@ -4,7 +4,7 @@
 
 `threepass` reviews a diff with three independent passes (correctness, security and data safety, and architecture), reconciles what they find into one ranked comment, and never spends more than a set amount per review. It ships with an eval set of real and planted bugs, and reports recall, precision and cost per pass. You can rerun the eval yourself.
 
-> **Status: early.** The design and eval plan are written; the code is being built ([roadmap](docs/roadmap.md)). The results table below fills in automatically from the first labeled eval run. Until then, there are no numbers to claim.
+> **Status: early.** The CLI, the cost ceiling and the eval harness are built ([roadmap](docs/roadmap.md) M0 to M6). No eval has been run against the real API yet. The results table below fills in automatically from the first labeled eval run. Until then, there are no numbers to claim.
 
 <p align="center">
   <img src="docs/images/architecture.svg" alt="The diff and PR text go to a context builder. Three independent passes (correctness, security and data safety, architecture) review it without seeing each other's output. A reconciler merges, scores and ranks the findings into one comment that reports its cost, under a cost ceiling." width="100%">
