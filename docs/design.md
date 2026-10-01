@@ -114,6 +114,24 @@ Findings that fail validation are dropped and counted in the output's `dropped_i
 
 A pass whose reply can't be used (a refusal, output cut off at `max_output_tokens`, invalid JSON, an API error) is reported as failed in the output. The other passes still run, and any tokens the failed call used are still counted in the cost.
 
+## The reviewer brief
+
+With `--brief` (or `brief.enabled: true`), a review also writes a **reviewer brief**: orientation for the person doing a deep review, so they understand the change before reading code. In the Three-Pass Review process, this brief is what pass 3 posts on deep-tier PRs.
+
+| Part | Where it comes from |
+|---|---|
+| Change map: areas touched, files and lines per area, flags for migrations, dependencies, tests, CI, infra, docs, and deleted, new, renamed or binary files | Computed from the diff (`ChangeMap`), no model |
+| The change in plain words, what changed per area, impact (behavior, API contract, data, config, dependencies, security, performance), risks, rollback, tests covered and gaps, questions for the author | A fourth call, `brief` (`prompts/brief.md`, its own schema in `Brief`) |
+| Where to look first | The top findings by severity, then the brief's own suggestions for lines no finding covers, up to five |
+| Sign-off draft | The deep-review note, pre-filled with the brief's rollback, test coverage and questions, with placeholders for what only a person can confirm |
+
+Rules for the brief:
+
+- **It's independent.** It reads the same frozen input as the checks, in parallel, and never sees their findings; they never see it. The independence test covers it.
+- **It runs only in `independent` mode.** The eval doesn't score it, so no number in this project is about the brief.
+- **It's validated.** Its "read first" entries must point inside the diff, like findings; invalid ones are dropped and counted. A brief with no summary is unusable, and the comment says so.
+- **It's budgeted.** It's estimated and accounted like any call, and it's the last thing dropped before a refusal.
+
 ## Independence: how it's enforced
 
 The whole design rests on this, so it's enforced in code and tests, not just by convention:
@@ -154,7 +172,8 @@ An optional LLM-based reconciler (semantic deduplication) can come later as an e
    1. Shrink excerpts to the hunks plus a smaller margin (`context.reduced_lines_around_hunk`, default 5).
    2. Drop excerpts and conventions files, and send the diff only.
    3. Skip the architecture pass (`independent` and `chained` only; the single modes have one prompt, so they go straight to refusing).
-   4. Refuse to run, exit with code 3, and say why.
+   4. Skip the reviewer brief, if one was asked for.
+   5. Refuse to run, exit with code 3, and say why.
 
    Every degradation is listed in the output.
 3. **Account after calling.** Compute actual cost from the token usage the API returns, per pass, and report it in both output formats.
@@ -191,7 +210,9 @@ Severities show as 🟥 critical, 🔴 high, 🟠 medium, 🟡 low. Failed or sk
 
 Findings text comes from the model, and file paths come from the diff, so both are untrusted on their way into the comment. HTML is escaped, table pipes are escaped, evidence goes in code fences longer than any backtick run inside it, and `@mentions` get a zero-width space. That way a prompt injection can't add markup, forge the `<!-- threepass -->` marker, or make the comment ping people.
 
-**JSON** (`--format json`): the reconciled findings, the raw findings from each pass, and the dropped and below-threshold counts (with the reason each invalid finding was dropped). It also includes the cost and tokens per pass, each pass's status (`ok`, `failed`, `skipped`), the estimated and actual totals, any degradations, the model, the prompt version hashes and the mode. `test/fixtures/golden/basic.json` shows the full shape.
+**JSON** (`--format json`): the reconciled findings, the raw findings from each pass, and the dropped and below-threshold counts (with the reason each invalid finding was dropped). It also includes the cost and tokens per pass, each pass's status (`ok`, `failed`, `skipped`), the estimated and actual totals, any degradations, the model, the prompt version hashes and the mode, plus the change map and, when asked for, the brief. `test/fixtures/golden/basic.json` shows the full shape.
+
+With a brief, the Markdown comment is laid out as the reviewer brief instead, orientation first and findings folded below it; `test/fixtures/golden/basic_brief.md` is a real rendering of the fixtures.
 
 Exit codes:
 
@@ -213,6 +234,7 @@ max_output_tokens: 4000           # per pass; also bounds thinking tokens
 effort: medium                    # low | medium | high | xhigh | max, or null for the API default
 samples: 3                        # calls in single_sampled mode
 confidence_threshold: 0.6
+brief: { enabled: false }         # the reviewer brief; --brief turns it on for one run
 max_comments: 10
 merge_line_gap: 3
 passes:
@@ -277,6 +299,8 @@ lib/three_pass_review/
   finding.rb                          schema + validation
   runner.rb                           modes: independent, chained, single, single_sampled
   reconciler.rb
+  change_map.rb                       the deterministic map of a diff, for the brief
+  brief.rb                            the reviewer brief's schema and validation (prompt: prompts/brief.md)
   formatters/markdown.rb, json.rb
 action.yml
 evals/                                see docs/eval-design.md
