@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="640" viewBox="0 0 1200 640" role="img" aria-labelledby="t d">
   <title id="t">How a pull request moves through review</title>
-  <desc id="d">A pull request triggers pass 1 (Copilot line comments), pass 2 (the light review, using Addy Osmani\'s skill or Claude Code\'s pr-review-toolkit) and the tier check in parallel. The light review can escalate the tier. The tier check sends the PR to an approval by one person, or to pass 3, the deep review: an AI reviewer brief and then the code owner and a second reviewer. A review-gate status enforces both before merge.</desc>
+  <desc id="d">A pull request triggers pass 1 (Copilot line comments), pass 2 (the light review, using Addy Osmani's skill or Claude Code's pr-review-toolkit) and the tier check in parallel. The light review can escalate the tier. The tier check sends the PR to an approval by one person, or to pass 3, the deep review: an AI reviewer brief and then the code owner and a second reviewer. A review-gate status enforces both before merge.</desc>
   <style>
     text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
     .bg { fill: #f5f7f6; } .card { fill: #ffffff; stroke: #d8dee2; } .ink { fill: #17212b; } .muted { fill: #55626e; }
