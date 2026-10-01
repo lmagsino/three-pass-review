@@ -1,0 +1,148 @@
+# Pass 3: the deep review.
+#
+# On PRs the tier check routes deep, runs `threepass`: three independent AI
+# checks (correctness, security and data safety, architecture) that never see
+# each other's output, merged into one ranked comment, under a hard cost
+# ceiling. The report is where the code owner and the second reviewer start.
+# It never approves, never blocks, and never lowers a tier.
+#
+# How it starts: the tier check (review-tier.yml) dispatches this workflow
+# once per head commit of a deep, same-repo, ready PR. Runs started by the
+# workflow token can't trigger other workflows, except workflow_dispatch.
+#
+# Trust model:
+# - This file and threepass itself come from trusted sources: the default
+#   branch, and the tool repository at the commit pinned in THREEPASS_REF.
+# - The PR is checked out as data only. Nothing from it is executed: threepass
+#   reads its diff and files and never runs them.
+# - .threepass.yml (model, ceiling, threshold) is read from the BASE branch,
+#   so a PR can't raise its own budget.
+# - Fork PRs never get here: they get no secrets, and humans deep-review them.
+
+name: Deep review
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Pull request number
+        required: true
+        type: number
+      force:
+        description: Review again even if this commit already has a deep review (e.g. after a failed run)
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: deep-review-${{ inputs.pr }}
+  cancel-in-progress: false   # a queued run re-checks the PR and skips a commit that's already done
+
+env:
+  # The threepass version. Set by the installer; run it again with --upgrade to move to a newer one.
+  THREEPASS_REPO: lmagsino/three-pass-review
+  THREEPASS_REF: main
+  LABEL_DEEP: tier/deep       # keep in sync with labels.deep in .github/review-policy.yml
+
+jobs:
+  deep-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out the posting script from the default branch (no PR code)
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/scripts/post-deep-review.sh
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
+      - name: Check the PR still needs a deep review of its latest commit
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ inputs.pr }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          pr_json=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR")
+          head_sha=$(jq -r '.head.sha' <<<"$pr_json")
+          skip=""
+          [ "$(jq -r '.state' <<<"$pr_json")" = "open" ] || skip="the PR is closed"
+          [ "$(jq -r '.draft' <<<"$pr_json")" = "false" ] || skip="the PR is a draft"
+          [ "$(jq -r '.head.repo.full_name' <<<"$pr_json")" = "$GITHUB_REPOSITORY" ] || skip="the PR comes from a fork"
+          jq -e --arg l "$LABEL_DEEP" '[.labels[].name] | index($l)' <<<"$pr_json" >/dev/null || skip="the PR isn't deep tier"
+          done=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | contains(\"<!-- threepass-sha=$head_sha -->\"))) | .id")
+          [ -z "$done" ] || [ "$FORCE" = "true" ] || skip="commit ${head_sha:0:7} already has a deep review (run again with force to redo it)"
+          if [ -n "$skip" ]; then
+            echo "Skipping: $skip."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          {
+            echo "run=true"
+            echo "head_sha=$head_sha"
+            echo "base_ref=$(jq -r '.base.ref' <<<"$pr_json")"
+          } >> "$GITHUB_OUTPUT"
+          jq -r '.title' <<<"$pr_json" > "$RUNNER_TEMP/title.txt"
+          jq -r '.body // ""' <<<"$pr_json" > "$RUNNER_TEMP/body.md"
+
+      - name: Check out the PR (read as data, never executed)
+        if: steps.pr.outputs.run == 'true'
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.pr.outputs.head_sha }}
+          path: pr
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check out threepass
+        if: steps.pr.outputs.run == 'true'
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ env.THREEPASS_REPO }}
+          ref: ${{ env.THREEPASS_REF }}
+          path: .threepass-tool
+          persist-credentials: false
+
+      - uses: ruby/setup-ruby@v1
+        if: steps.pr.outputs.run == 'true'
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+          working-directory: .threepass-tool
+
+      - name: Run threepass
+        if: steps.pr.outputs.run == 'true'
+        id: review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          HEAD_SHA: ${{ steps.pr.outputs.head_sha }}
+          BASE_REF: ${{ steps.pr.outputs.base_ref }}
+        run: |
+          git -C pr diff "origin/$BASE_REF...$HEAD_SHA" > "$RUNNER_TEMP/change.patch"
+          config=()
+          if git -C pr show "origin/$BASE_REF:.threepass.yml" > "$RUNNER_TEMP/threepass.yml" 2>/dev/null; then
+            config=(--config "$RUNNER_TEMP/threepass.yml")
+          fi
+          set +e
+          (cd .threepass-tool && bundle exec exe/threepass review \
+            --diff "$RUNNER_TEMP/change.patch" --repo "$GITHUB_WORKSPACE/pr" \
+            --title "$(cat "$RUNNER_TEMP/title.txt")" --body-file "$RUNNER_TEMP/body.md" \
+            --format markdown "${config[@]}") > "$RUNNER_TEMP/report.md" 2> "$RUNNER_TEMP/stderr.txt"
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          cat "$RUNNER_TEMP/stderr.txt" >&2
+
+      - name: Post the report
+        if: steps.pr.outputs.run == 'true' && !cancelled()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ inputs.pr }}
+          HEAD_SHA: ${{ steps.pr.outputs.head_sha }}
+          EXIT_CODE: ${{ steps.review.outputs.exit_code }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: bash .github/scripts/post-deep-review.sh

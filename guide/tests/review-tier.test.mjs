@@ -14,6 +14,8 @@ import {
   canRemoveEscalation,
   countApprovals,
   parseLightComment,
+  shouldDispatchDeepReview,
+  threepassShaMarker,
   renderComment,
   code,
   MARKER,
@@ -225,4 +227,26 @@ test('comment starts with the marker and explains the tier', () => {
   const light = renderComment(decide([f('src/ui/a.ts', 3)]), { approvalChecklistUrl: 'https://example.com/light' });
   assert.match(light, /Review tier: Light/);
   assert.match(light, /`escalate\/deep`/);
+});
+
+test('pass 3 is dispatched once per head commit of a deep, same-repo, ready PR', () => {
+  const bot = { type: 'Bot', login: 'github-actions[bot]' };
+  const base = { workflow: 'deep-review.yml', tier: 'deep', isFork: false, isDraft: false, headSha: 'abc1234def' };
+  assert.equal(shouldDispatchDeepReview(base), true);
+  assert.equal(shouldDispatchDeepReview({ ...base, tier: 'light' }), false);
+  assert.equal(shouldDispatchDeepReview({ ...base, isFork: true }), false, 'forks get no secrets');
+  assert.equal(shouldDispatchDeepReview({ ...base, isDraft: true }), false);
+  assert.equal(shouldDispatchDeepReview({ ...base, workflow: '' }), false, 'pass 3 not installed');
+  const done = [{ user: bot, body: `report\n${threepassShaMarker('abc1234def')}` }];
+  assert.equal(shouldDispatchDeepReview({ ...base, comments: done }), false, 'already reviewed this commit');
+  const stale = [{ user: bot, body: threepassShaMarker('0000000') }];
+  assert.equal(shouldDispatchDeepReview({ ...base, comments: stale }), true, 'a new commit needs a new review');
+  const forged = [{ user: { type: 'User', login: 'someone' }, body: threepassShaMarker('abc1234def') }];
+  assert.equal(shouldDispatchDeepReview({ ...base, comments: forged }), true, 'only our own comment counts');
+});
+
+test('the deep tier comment mentions pass 3 only when it is installed', () => {
+  const deep = decide([f('src/auth/login.ts', 3)]);
+  assert.match(renderComment(deep, { deepAiReview: true }), /Pass 3 also runs `threepass`/);
+  assert.doesNotMatch(renderComment(deep, {}), /threepass/);
 });

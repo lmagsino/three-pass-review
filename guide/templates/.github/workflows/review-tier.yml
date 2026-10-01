@@ -30,6 +30,7 @@ permissions:
   pull-requests: write
   issues: write
   statuses: write
+  actions: write   # to start pass 3 (deep-review.yml) on deep-tier PRs
 
 concurrency:
   group: review-tier-${{ github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number || github.event.workflow_run.head_branch || github.run_id }}
@@ -57,4 +58,6 @@ jobs:
       - name: Decide tier, label the PR, update the comment and the gate
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          # Pass 3. Set to '' to turn off the AI deep review; humans still deep-review.
+          DEEP_REVIEW_WORKFLOW: deep-review.yml
         run: node .github/scripts/review-tier.mjs

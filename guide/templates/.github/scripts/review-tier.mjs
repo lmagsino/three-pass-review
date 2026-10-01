@@ -368,7 +368,7 @@ export function parseLightComment(body) {
 // ---------------------------------------------------------------------------
 // The sticky PR comment
 // ---------------------------------------------------------------------------
-export function renderComment(result, { approvalChecklistUrl, deepChecklistUrl, policyRef, gate, notes = [] } = {}) {
+export function renderComment(result, { approvalChecklistUrl, deepChecklistUrl, policyRef, gate, deepAiReview = false, notes = [] } = {}) {
   const { tier, reasons, owners, stats, labels } = result;
   const lines = [MARKER];
 
@@ -380,7 +380,8 @@ export function renderComment(result, { approvalChecklistUrl, deepChecklistUrl, 
       '**Next:** a deep review' +
         (owners.length ? ' with sign-off from the code owners' : '') +
         (deepChecklistUrl ? ` ([deep review checklist](${deepChecklistUrl}))` : '') +
-        '. The AI reviews still run; they feed the deep review, they don\'t replace it.'
+        '. The AI reviews still run; they feed the deep review, they don\'t replace it.' +
+        (deepAiReview ? ' Pass 3 also runs `threepass` on this PR and posts its report for the deep reviewers to start from.' : '')
     );
     if (owners.length) lines.push('', `**Owners:** ${owners.join(' ')}`);
   } else {
@@ -496,6 +497,14 @@ async function setLabels(api, repo, number, current, result) {
 }
 
 const isActionsBot = (c) => c.user?.type === 'Bot' && c.user?.login === 'github-actions[bot]';
+
+// Pass 3 (deep review) runs `threepass` once per head commit of a deep,
+// same-repo, non-draft PR. Its comment records the commit it reviewed.
+export const threepassShaMarker = (sha) => `<!-- threepass-sha=${sha} -->`;
+export function shouldDispatchDeepReview({ workflow, tier, isFork, isDraft, headSha, comments = [] }) {
+  if (!workflow || tier !== 'deep' || isFork || isDraft || !headSha) return false;
+  return !comments.some((c) => isActionsBot(c) && String(c.body || '').includes(threepassShaMarker(headSha)));
+}
 
 async function upsertComment(api, repo, number, comments, body) {
   const mine = comments.find((c) => isActionsBot(c) && c.body?.startsWith(MARKER));
@@ -623,12 +632,14 @@ async function main() {
 
   const baseRef = pr.base.ref;
   const blob = (file) => `${server}/${repo}/blob/${encodeURIComponent(baseRef)}/${file}`;
-  const checklist = blob(`.github/review/${result.tier}-review-checklist.md`);
+  const checklist = blob(`.github/review/${result.tier === 'deep' ? 'deep-review' : 'approval'}-checklist.md`);
+  const deepWorkflow = process.env.DEEP_REVIEW_WORKFLOW || '';
   const body = renderComment(result, {
     policyRef: baseRef,
     approvalChecklistUrl: blob('.github/review/approval-checklist.md'),
     deepChecklistUrl: blob('.github/review/deep-review-checklist.md'),
     gate,
+    deepAiReview: Boolean(deepWorkflow) && !isFork,
     notes,
   });
 
@@ -640,6 +651,21 @@ async function main() {
     description: gate.description.slice(0, 140),
     target_url: checklist,
   });
+
+  // Workflow runs started by this job's token don't trigger other workflows,
+  // except workflow_dispatch, so pass 3 is started explicitly. The deep
+  // review re-checks the PR itself, so an extra dispatch only costs a no-op run.
+  if (shouldDispatchDeepReview({ workflow: deepWorkflow, tier: result.tier, isFork, isDraft: pr.draft, headSha: pr.head.sha, comments })) {
+    try {
+      await api.request('POST', `/repos/${repo}/actions/workflows/${encodeURIComponent(deepWorkflow)}/dispatches`, {
+        ref: pr.base.repo.default_branch,
+        inputs: { pr: String(pr.number) },
+      });
+      console.log(`Started the deep review (pass 3) for ${pr.head.sha.slice(0, 7)}.`);
+    } catch (err) {
+      console.log(`Couldn't start the deep review (pass 3): ${err.message}`);
+    }
+  }
 
   if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, body.replace(MARKER, ''));
   if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `tier=${result.tier}\ngate=${gate.state}\n`);
