@@ -99,6 +99,11 @@ class BudgetTest < Minitest::Test
     error = assert_raises(ThreePassReview::Budget::Refused) { plan(budget(max: two_passes / 2)) }
     assert_equal %w[smaller_excerpts diff_only skipped_architecture], error.degradations
     assert_match(/over max_cost_usd/, error.message)
+    assert_match(/max_cost_usd \$0\.0001 /, plan_error(0.0001).message)
+  end
+
+  def plan_error(max)
+    assert_raises(ThreePassReview::Budget::Refused) { plan(budget(max: max)) }
   end
 
   def plan_shape(b)

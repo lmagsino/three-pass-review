@@ -67,8 +67,8 @@ module ThreePassReview
         end
       end
       raise Refused.new(
-        format("estimated cost $%.4f is over max_cost_usd $%.2f even after %s", estimate.total_usd, max_cost_usd,
-          degradations.join(", ")),
+        "estimated cost #{dollars(estimate.total_usd)} is over max_cost_usd #{dollars(max_cost_usd)} " \
+        "even after #{degradations.join(", ")}",
         estimate: estimate, degradations: degradations
       )
     end
@@ -103,6 +103,11 @@ module ThreePassReview
     end
 
     private
+
+    # Enough digits that a tiny ceiling doesn't print as $0.00.
+    def dollars(amount)
+      format("$%.#{(amount < 0.01) ? 4 : 2}f", amount)
+    end
 
     def account_results(results)
       calls = results.map do |r|
