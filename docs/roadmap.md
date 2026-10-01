@@ -84,12 +84,24 @@ Build in order. Each milestone ends with green tests and its own commit. "Done w
 
 ## M8: Plug the tool into the guide
 
-- In `guide/`, rename the process's "passes" to **layers**: layer 1 Copilot, layer 2 agent review, layer 3 human review. That frees "passes" for the tool.
-- Swap the guide's agent review (claude-code-action with a single skill) for this tool's action.
-- Keep the tier check and merge gate:
-  - escalate when the tool reports any critical or high finding,
-  - the light-tier gate needs a clean `threepass` result on the latest commit.
-- Update the guide's diagrams and site.
+Three-Pass Review is a **process** a team installs into each project. The passes scale effort with risk:
+
+| Pass | What runs | On which PRs |
+|---|---|---|
+| 1. Auto review | Copilot code review | Every push |
+| 2. Light review | One AI reviewer, chosen in the policy: Addy Osmani's `code-review-and-quality` skill, or Claude Code's `pr-review-toolkit` plugin | Every ready PR |
+| 3. Deep review | `threepass` (three independent checks, cost ceiling, eval), then the code owner and a second reviewer | Only PRs the tier check routes deep |
+
+The process keeps the word "passes". In user-facing text, `threepass`'s internal correctness, security and architecture passes are called **checks**.
+
+- Rename the guide's pass 2 from "agent review" to **light review** in the kit's workflows, labels, comment markers and tier logic.
+- Make pass 2 pluggable with `light_review.reviewer` in `.github/review-policy.yml`, read from the base branch.
+- Add a pass 3 workflow template that runs `threepass` on deep-tier, same-repo PRs. It uses the `.threepass.yml` from the base branch, runs the tool at a pinned commit, and posts one comment per PR, updated for each new head commit. It never approves, and it never lowers a tier.
+- Keep the tier check and merge gate as they are. Light PRs need a clean light review on the latest commit; deep PRs need two approvals. Pass 3 informs the deep reviewers and doesn't gate the merge.
+- The installer can upgrade a project in place: kit-owned files are refreshed, and files a team edits (policy, CODEOWNERS, PR template, instructions) are left alone.
+- Update the guide's docs, diagrams and site, and lead the README with the process.
+
+These are workflow templates the adopting project installs. This repository itself still has no CI for the Ruby tool, by the maintainer's decision.
 
 ## Later
 

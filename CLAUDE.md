@@ -6,7 +6,7 @@ Instructions for AI coding agents working in this repo. Read this before changin
 
 `threepass` is a Ruby CLI and GitHub Action. It reviews a diff with three **independent** passes (correctness, security and data safety, architecture and conventions), reconciles their findings into one comment, enforces a cost ceiling per review, and is measured by a public eval harness.
 
-`guide/` is a separate companion: a process guide plus a Node-based GitHub kit. Don't modify it unless the task is roadmap milestone M8.
+`guide/` holds the Three-Pass Review process: a guide plus a Node-based GitHub kit that teams install into their projects (pass 1 Copilot, pass 2 light review, pass 3 deep review powered by `threepass`). The kit changes only with roadmap M8 work or later. Its workflow files are **templates** for adopting projects; this repository itself gets no new CI.
 
 The specs are the source of truth:
 
