@@ -39,6 +39,9 @@ module ThreePassReview
             "over_ceiling" => !o.accounting.total_usd.nil? && o.accounting.total_usd > o.max_cost_usd
           },
           "degradations" => o.plan.degradations,
+          "change_map" => o.change_map&.to_h,
+          "brief" => o.brief&.to_h&.transform_keys(&:to_s),
+          "brief_error" => o.brief_error,
           "diff" => {"files" => o.diff.paths}
         }
       end

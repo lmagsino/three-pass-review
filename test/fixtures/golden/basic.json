@@ -238,6 +238,24 @@
     "over_ceiling": false
   },
   "degradations": [],
+  "change_map": {
+    "areas": [
+      {
+        "name": "app/models",
+        "files": 1,
+        "added": 8,
+        "removed": 2,
+        "flags": []
+      }
+    ],
+    "totals": {
+      "files": 1,
+      "added": 8,
+      "removed": 2
+    }
+  },
+  "brief": null,
+  "brief_error": null,
   "diff": {
     "files": [
       "app/models/invoice.rb"
