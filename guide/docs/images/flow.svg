@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="640" viewBox="0 0 1200 640" role="img" aria-labelledby="t d">
+  <title id="t">How a pull request moves through review</title>
+  <desc id="d">A pull request triggers Copilot review, the agent review and the tier check in parallel. The agent review can escalate the tier. The tier check sends the PR to light review or deep review, and both must pass the review-gate check before merge.</desc>
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+    .bg { fill: #f5f7f6; } .card { fill: #ffffff; stroke: #d8dee2; } .ink { fill: #17212b; } .muted { fill: #55626e; }
+    .rule { stroke: #b9c2c9; } .rulefill { fill: #b9c2c9; } .inkstroke { stroke: #17212b; } .inkfill { fill: #17212b; }
+    .g { fill: #1a7f4b; } .gbg { fill: #e5f3eb; } .gs { stroke: #1a7f4b; }
+    .v { fill: #5b34a3; } .vbg { fill: #eee8f8; } .vs { stroke: #5b34a3; }
+    .a { fill: #8a5a00; } .abg { fill: #fbf0d9; } .as { stroke: #8a5a00; }
+    .onfill { fill: #ffffff; } .onstroke { stroke: #ffffff; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #121a21; } .card { fill: #19232c; stroke: #2b3843; } .ink { fill: #e7ecef; } .muted { fill: #9aa7b2; }
+      .rule { stroke: #3d4c58; } .rulefill { fill: #3d4c58; } .inkstroke { stroke: #e7ecef; } .inkfill { fill: #e7ecef; }
+      .g { fill: #4cc38a; } .gbg { fill: #15392a; } .gs { stroke: #4cc38a; }
+      .v { fill: #b49af0; } .vbg { fill: #2d2547; } .vs { stroke: #b49af0; }
+      .a { fill: #e2b04a; } .abg { fill: #3a2f17; } .as { stroke: #e2b04a; }
+      .onfill { fill: #121a21; } .onstroke { stroke: #121a21; }
+    }
+  </style>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="inkfill" d="M0 0 L10 5 L0 10 z"/></marker>
+    <marker id="av" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="v" d="M0 0 L10 5 L0 10 z"/></marker>
+    <marker id="am" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="rulefill" d="M0 0 L10 5 L0 10 z"/></marker>
+  </defs>
+  <rect class="bg" width="1200" height="640" rx="20"/>
+  <text class="ink" x="40" y="46" font-size="22" font-weight="700">How a pull request moves through review</text>
+
+  <!-- connectors (drawn first, under the boxes) -->
+  <g fill="none" stroke-width="2" class="inkstroke">
+    <path d="M220 330 H255 V138 H282" marker-end="url(#ah)"/>
+    <path d="M220 330 H282" marker-end="url(#ah)"/>
+    <path d="M220 330 H255 V522 H282" marker-end="url(#ah)"/>
+    <path d="M550 522 H595 V398 H632" marker-end="url(#ah)"/>
+    <path d="M550 522 H595 V542 H632" marker-end="url(#ah)"/>
+    <path d="M890 398 H920 V470 H942" marker-end="url(#ah)"/>
+    <path d="M890 542 H920 V470 H942" marker-end="url(#ah)"/>
+    <path d="M1060 525 V552" marker-end="url(#ah)"/>
+  </g>
+  <path class="vs" d="M420 378 V466" fill="none" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#av)"/>
+  <text class="v" x="434" y="428" font-size="14" font-weight="700">escalates</text>
+  <path class="rule" d="M550 138 H765 V342" fill="none" stroke-width="2" stroke-dasharray="3 5" marker-end="url(#am)"/>
+  <path class="rule" d="M550 330 H765" fill="none" stroke-width="2" stroke-dasharray="3 5"/>
+  <text class="muted" x="566" y="126" font-size="14">AI comments for the reviewer</text>
+
+  <!-- boxes -->
+  <rect class="card" x="40" y="282" width="180" height="96" rx="12" stroke-width="1.5"/>
+  <text class="ink" x="130" y="324" font-size="19" font-weight="700" text-anchor="middle">Pull request</text>
+  <text class="muted" x="130" y="350" font-size="15" text-anchor="middle">opened or pushed</text>
+
+  <rect class="card" x="290" y="90" width="260" height="96" rx="12" stroke-width="1.5"/>
+  <text class="ink" x="420" y="132" font-size="19" font-weight="700" text-anchor="middle">Pass 1: Copilot</text>
+  <text class="muted" x="420" y="158" font-size="15" text-anchor="middle">Line comments, every push</text>
+
+  <rect class="card" x="290" y="282" width="260" height="96" rx="12" stroke-width="1.5"/>
+  <text class="ink" x="420" y="324" font-size="19" font-weight="700" text-anchor="middle">Pass 2: Agent review</text>
+  <text class="muted" x="420" y="350" font-size="15" text-anchor="middle">Five-axis review skill</text>
+
+  <rect class="card" x="290" y="474" width="260" height="96" rx="12" stroke-width="1.5"/>
+  <text class="ink" x="420" y="516" font-size="19" font-weight="700" text-anchor="middle">Tier check</text>
+  <text class="muted" x="420" y="542" font-size="15" text-anchor="middle">Rules from the base branch</text>
+
+  <rect class="gbg" x="640" y="350" width="250" height="96" rx="12"/>
+  <rect class="gs" x="640" y="350" width="250" height="96" rx="12" fill="none" stroke-width="1.5"/>
+  <text class="g" x="765" y="392" font-size="19" font-weight="700" text-anchor="middle">Light review</text>
+  <text class="muted" x="765" y="418" font-size="15" text-anchor="middle">One approver, about 5 min</text>
+
+  <rect class="vbg" x="640" y="494" width="250" height="96" rx="12"/>
+  <rect class="vs" x="640" y="494" width="250" height="96" rx="12" fill="none" stroke-width="1.5"/>
+  <text class="v" x="765" y="536" font-size="19" font-weight="700" text-anchor="middle">Pass 3: Deep review</text>
+  <text class="muted" x="765" y="562" font-size="15" text-anchor="middle">Owner + second reviewer</text>
+
+  <rect class="abg" x="950" y="415" width="220" height="110" rx="12"/>
+  <rect class="as" x="950" y="415" width="220" height="110" rx="12" fill="none" stroke-width="1.5"/>
+  <text class="a" x="1060" y="447" font-size="19" font-weight="700" text-anchor="middle">review-gate</text>
+  <text class="muted" x="1060" y="474" font-size="14" text-anchor="middle">Light: agent review clean</text>
+  <text class="muted" x="1060" y="497" font-size="14" text-anchor="middle">Deep: 2 approvals</text>
+
+  <rect class="inkfill" x="995" y="560" width="130" height="48" rx="24"/>
+  <text class="onfill" x="1060" y="590" font-size="18" font-weight="700" text-anchor="middle">Merge</text>
+</svg>

@@ -1,0 +1,22 @@
+# Code owners: the people who sign off on deep reviews.
+#
+# GitHub enforces this file when your branch ruleset has
+# "Require review from Code Owners" turned on. It is read from the base branch.
+# Keep the sensitive paths here in sync with sensitive_paths in
+# .github/review-policy.yml. The policy decides the tier; this file decides who
+# has to approve. Later lines win when several match.
+
+# Core / sensitive paths
+/src/auth/           @your-org/security
+/src/payments/       @your-org/payments
+/db/migrations/      @your-org/data
+/infra/              @your-org/platform
+
+# The review setup itself: workflows, policy, reviewer instructions
+/.github/            @your-org/eng-leads
+/.claude/            @your-org/eng-leads
+/.agents/            @your-org/eng-leads
+CLAUDE.md            @your-org/eng-leads
+AGENTS.md            @your-org/eng-leads
+GEMINI.md            @your-org/eng-leads
+REVIEW.md            @your-org/eng-leads

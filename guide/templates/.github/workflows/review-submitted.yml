@@ -1,0 +1,18 @@
+# Does nothing itself. When someone approves or dismisses a review, this run
+# finishing triggers "Review tier" (through workflow_run), which recounts
+# approvals with a token that can update the merge gate, including on fork PRs.
+
+name: Review submitted   # review-tier.yml listens for this name
+
+on:
+  pull_request_review:
+    types: [submitted, dismissed]
+
+permissions: {}
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - run: echo "Review ${{ github.event.action }} on PR #${{ github.event.pull_request.number }}"

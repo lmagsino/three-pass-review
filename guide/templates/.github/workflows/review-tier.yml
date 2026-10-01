@@ -1,0 +1,60 @@
+# Tier check and merge gate.
+#
+# - Labels each PR tier/light or tier/deep and keeps one comment explaining why.
+# - Publishes the `review-gate` commit status. Make it a required status check:
+#     light: passes once the agent review is clean on the latest commit
+#     deep:  passes once enough people approved the latest commit
+#
+# Why pull_request_target: it runs this workflow from the BASE branch with a
+# token that can label PRs and set statuses, including PRs from forks. That's
+# safe here because the job never checks out or runs PR code: it checks out
+# only this script from the trusted branch, reads the PR through the API, and
+# reads the policy from the PR's base branch. Never add a checkout of the PR
+# head to this workflow.
+#
+# It also re-runs when the agent review finishes or someone submits a review
+# (via workflow_run), because labels and reviews added by other workflows
+# don't trigger runs on their own.
+
+name: Review tier
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
+  workflow_run:
+    workflows: ["Agent review", "Review submitted"]   # must match the name: in those workflows
+    types: [completed]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  statuses: write
+
+concurrency:
+  group: review-tier-${{ github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number || github.event.workflow_run.head_branch || github.run_id }}
+  cancel-in-progress: false   # every run reads fresh state; let each one finish
+
+jobs:
+  tier:
+    if: >-
+      github.event_name == 'pull_request_target' ||
+      github.event.workflow_run.event == 'pull_request' ||
+      github.event.workflow_run.event == 'pull_request_review'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out the script from the trusted branch (no PR code)
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/scripts/review-tier.mjs
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Decide tier, label the PR, update the comment and the gate
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node .github/scripts/review-tier.mjs

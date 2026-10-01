@@ -1,0 +1,117 @@
+# Review routing policy: which PRs get a light review and which get a deep one.
+#
+# Read by .github/scripts/review-tier.mjs from the BASE branch, so a PR can't
+# change the rules for its own review. Changes to this file are always routed
+# to deep review.
+#
+# Globs: *  any characters except '/'
+#        ** any characters including '/'
+#        A pattern with no '/' matches at any depth ("*.snap").
+
+version: 1
+
+# Label names. If you rename them, also update .github/workflows/agent-review.yml
+# (the LABEL_ESCALATE env and the skip label in the job's `if:`).
+labels:
+  light: tier/light              # managed by the tier check
+  deep: tier/deep                # managed by the tier check
+  escalate: escalate/deep        # sticky: added by the agent review or a person, never removed by automation
+  split: needs-split             # PR is past split_changed_lines
+  skip_agent: skip-agent-review  # skips pass 2, which also makes the PR deep
+
+# The merge gate (`review-gate` status). Light PRs pass once the agent review is
+# clean on the latest commit. Deep PRs pass once this many people (not the
+# author, not bots) have approved the latest commit. CODEOWNERS still decides
+# WHO must be among them on sensitive paths.
+deep_review:
+  min_approvals: 2
+
+# Who can take the escalate label off a PR (repository roles). The PR author
+# never can; if they try, the tier check puts it back.
+escalation:
+  removable_by: [admin, maintain]
+
+# Core / sensitive paths: always deep review, owner signs off.
+# CODEOWNERS is what GitHub actually enforces. Keep the two lists in sync.
+sensitive_paths:
+  - pattern: "src/auth/**"
+    owners: "@your-org/security"
+    why: "authentication and sessions"
+  - pattern: "src/payments/**"
+    owners: "@your-org/payments"
+    why: "money movement"
+  - pattern: "db/migrations/**"
+    owners: "@your-org/data"
+    why: "schema changes are hard to roll back"
+  - pattern: "infra/**"
+    owners: "@your-org/platform"
+    why: "production infrastructure"
+
+# Starting points from the review skill's change-sizing guidance:
+# ~100 lines is good, ~300 is fine for one logical change, ~1000 is too large.
+thresholds:
+  deep_changed_lines: 400
+  split_changed_lines: 1000
+  deep_files: 30
+  deep_top_level_areas: 3    # touching 4+ top-level folders counts as cross-cutting
+  max_ignored_lines: 5000    # more than this in "generated" files is suspicious in itself
+
+rules:
+  deleted_source_files_are_deep: true    # whatever called them may still exist
+  deleted_tests_are_deep: true           # includes renaming a test to a non-test path
+  dependency_changes_are_deep: true
+  quality_gate_changes_are_deep: true    # lint/test/coverage config can be loosened to get green
+  first_time_contributors_are_deep: true
+  fork_prs_are_deep: true                # the agent review doesn't run on forks, so light can't be cleared
+
+# Lines in these files don't count toward size (generated code, lockfiles,
+# snapshots). The files still count toward the file count and spread.
+ignore_for_size:
+  - "package-lock.json"
+  - "pnpm-lock.yaml"
+  - "yarn.lock"
+  - "bun.lockb"
+  - "poetry.lock"
+  - "uv.lock"
+  - "Cargo.lock"
+  - "go.sum"
+  - "Gemfile.lock"
+  - "*.snap"
+  - "**/__generated__/**"
+  - "**/generated/**"
+  - "*.min.js"
+  - "*.min.css"
+
+dependency_files:
+  - "package.json"
+  - "requirements*.txt"
+  - "pyproject.toml"
+  - "go.mod"
+  - "Cargo.toml"
+  - "Gemfile"
+  - "pom.xml"
+  - "build.gradle*"
+  - "*.csproj"
+
+quality_gate_files:
+  - ".eslintrc*"
+  - "eslint.config.*"
+  - "biome.json*"
+  - "tsconfig*.json"
+  - "jest.config.*"
+  - "vitest.config.*"
+  - "playwright.config.*"
+  - ".coveragerc"
+  - "codecov.yml"
+  - "pytest.ini"
+  - "ruff.toml"
+  - ".golangci.y*ml"
+
+test_paths:
+  - "**/test/**"
+  - "**/tests/**"
+  - "**/__tests__/**"
+  - "*.test.*"
+  - "*.spec.*"
+  - "*_test.*"
+  - "test_*.py"

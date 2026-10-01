@@ -1,0 +1,689 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Three-Pass Code Review</title>
+<meta name="description" content="How to review code when agents write most of it: Copilot on every push, a second AI agent running a five-axis review, and human deep review where the blast radius is.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wdth,wght@75..100,400..700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f5f7f6;
+    --surface: #ffffff;
+    --ink: #17212b;
+    --muted: #55626e;
+    --rule: #d8dee2;
+    --rule-strong: #b9c2c9;
+    --light: #1a7f4b;
+    --light-bg: #e5f3eb;
+    --deep: #5b34a3;
+    --deep-bg: #eee8f8;
+    --wait: #8a5a00;
+    --wait-bg: #fbf0d9;
+    --add: #1a7f4b;
+    --del: #b42318;
+    --focus: #2563eb;
+    --sans: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --measure: 68ch;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #121a21;
+      --surface: #19232c;
+      --ink: #e7ecef;
+      --muted: #9aa7b2;
+      --rule: #2b3843;
+      --rule-strong: #3d4c58;
+      --light: #4cc38a;
+      --light-bg: #15392a;
+      --deep: #b49af0;
+      --deep-bg: #2d2547;
+      --wait: #e2b04a;
+      --wait-bg: #3a2f17;
+      --add: #4cc38a;
+      --del: #f08a80;
+      --focus: #7aa7ff;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #121a21; --surface: #19232c; --ink: #e7ecef; --muted: #9aa7b2;
+    --rule: #2b3843; --rule-strong: #3d4c58; --light: #4cc38a; --light-bg: #15392a;
+    --deep: #b49af0; --deep-bg: #2d2547; --wait: #e2b04a; --wait-bg: #3a2f17;
+    --add: #4cc38a; --del: #f08a80; --focus: #7aa7ff;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font: 400 17px/1.6 var(--sans);
+    font-variation-settings: "wdth" 100;
+  }
+  a { color: inherit; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+  a:hover { text-decoration-thickness: 2px; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 3px; }
+  code, kbd, .path { font-family: var(--mono); font-size: 0.86em; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+  /* Header */
+  .top { border-bottom: 1px solid var(--rule); }
+  .top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 60px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 650; text-decoration: none; letter-spacing: -0.01em; }
+  .brand svg { flex: none; }
+  .top nav { display: flex; gap: 20px; font-size: 15px; flex-wrap: wrap; }
+  .top nav a { text-decoration: none; color: var(--muted); }
+  .top nav a:hover { color: var(--ink); }
+
+  /* Hero */
+  .hero .wrap { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 56px; padding-top: 72px; padding-bottom: 80px; align-items: center; }
+  .hero h1 {
+    margin: 0 0 26px;
+    font-size: clamp(42px, 6.4vw, 78px);
+    line-height: 0.98;
+    font-weight: 700;
+    font-variation-settings: "wdth" 78;
+    letter-spacing: -0.02em;
+  }
+  .hero h1 span { display: block; }
+  .hero .lede { font-size: 19px; max-width: 46ch; margin: 0 0 30px; }
+  .actions { display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 11px 18px; border-radius: 6px; font-weight: 600; font-size: 16px;
+    text-decoration: none; border: 1px solid var(--ink);
+  }
+  .btn.primary { background: var(--ink); color: var(--paper); }
+  .btn.secondary { background: transparent; }
+  .btn:hover { text-decoration: none; }
+  .btn.primary:hover { opacity: 0.9; }
+  .btn.secondary:hover { background: var(--surface); }
+
+  /* The PR checks panel in the hero */
+  .checks {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 15px;
+  }
+  .checks header { padding: 14px 18px; border-bottom: 1px solid var(--rule); }
+  .checks header strong { display: block; font-size: 16px; }
+  .checks header span { color: var(--muted); font-size: 14px; }
+  .checks header .path { color: var(--muted); }
+  .check { display: grid; grid-template-columns: 22px 1fr auto; gap: 12px; align-items: start; padding: 13px 18px; border-bottom: 1px solid var(--rule); }
+  .check:last-child { border-bottom: 0; }
+  .check .who { font-weight: 600; }
+  .check .what { color: var(--muted); font-size: 14px; line-height: 1.45; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; margin-top: 4px; border: 2px solid currentColor; }
+  .dot.ok { color: var(--light); background: var(--light); }
+  .dot.deep { color: var(--deep); background: var(--deep); }
+  .dot.wait { color: var(--wait); background: transparent; }
+  .dot.info { color: var(--muted); background: transparent; }
+  .pill { font-size: 13px; font-weight: 600; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+  .pill.light { color: var(--light); background: var(--light-bg); }
+  .pill.deep { color: var(--deep); background: var(--deep-bg); }
+  .pill.wait { color: var(--wait); background: var(--wait-bg); }
+  .pill.muted { color: var(--muted); background: transparent; border: 1px solid var(--rule); }
+  @media (prefers-reduced-motion: no-preference) {
+    .checks .check { opacity: 0; transform: translateY(4px); animation: arrive 360ms ease-out forwards; }
+    .checks .check:nth-of-type(1) { animation-delay: 250ms; }
+    .checks .check:nth-of-type(2) { animation-delay: 650ms; }
+    .checks .check:nth-of-type(3) { animation-delay: 1050ms; }
+    .checks .check:nth-of-type(4) { animation-delay: 1450ms; }
+    @keyframes arrive { to { opacity: 1; transform: none; } }
+  }
+
+  /* Sections */
+  section.band { border-top: 1px solid var(--rule); padding: 72px 0; }
+  .band h2 {
+    font-size: clamp(30px, 3.6vw, 44px);
+    line-height: 1.05;
+    margin: 0 0 14px;
+    font-weight: 700;
+    font-variation-settings: "wdth" 82;
+    letter-spacing: -0.015em;
+  }
+  .band .intro { max-width: var(--measure); color: var(--muted); margin: 0 0 40px; font-size: 18px; }
+
+  /* Three passes: a real sequence, so numbered */
+  .passes { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 2px solid var(--ink); }
+  .passes li { padding: 22px 26px 6px 0; }
+  .passes li + li { padding-left: 26px; border-left: 1px solid var(--rule); }
+  .passes .n { font-size: 56px; line-height: 1; font-weight: 700; font-variation-settings: "wdth" 75; color: var(--rule-strong); display: block; margin-bottom: 10px; }
+  .passes h3 { margin: 0 0 4px; font-size: 21px; }
+  .passes .meta { margin: 0 0 12px; color: var(--muted); font-size: 15px; }
+  .passes p { margin: 0 0 12px; }
+  .passes ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 15.5px; }
+  .passes ul li { padding: 0; border: 0; margin-bottom: 4px; }
+  .note { margin-top: 34px; max-width: var(--measure); padding-left: 16px; border-left: 3px solid var(--light); }
+
+  /* Router demo */
+  .router { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); border: 1px solid var(--rule-strong); border-radius: 10px; overflow: hidden; background: var(--surface); }
+  .router .input { padding: 24px; border-right: 1px solid var(--rule); }
+  .router .output { padding: 24px 28px; }
+  .presets { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; }
+  .presets button {
+    font: inherit; font-size: 14px; cursor: pointer;
+    padding: 6px 12px; border-radius: 6px;
+    border: 1px solid var(--rule-strong); background: var(--paper); color: var(--ink);
+  }
+  .presets button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  label.field { display: block; font-weight: 600; font-size: 15px; margin-bottom: 6px; }
+  .hint { color: var(--muted); font-size: 13.5px; margin: 6px 0 16px; }
+  textarea {
+    width: 100%; min-height: 168px; resize: vertical;
+    font: 14px/1.55 var(--mono);
+    padding: 12px; border-radius: 6px;
+    border: 1px solid var(--rule-strong); background: var(--paper); color: var(--ink);
+  }
+  .toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; margin: 0 0 16px; font-size: 15px; }
+  .toggles label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+  .row { display: flex; gap: 18px; flex-wrap: wrap; }
+  .row > div { flex: 1 1 180px; }
+  select, input[type="number"] {
+    width: 100%; font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 6px;
+    border: 1px solid var(--rule-strong); background: var(--paper); color: var(--ink);
+  }
+  .verdict { display: flex; align-items: baseline; gap: 14px; margin: 0 0 4px; flex-wrap: wrap; }
+  .verdict .tier {
+    font-size: clamp(56px, 8vw, 96px); line-height: 0.9; font-weight: 700;
+    font-variation-settings: "wdth" 75; letter-spacing: -0.02em;
+  }
+  .verdict .tier.light { color: var(--light); }
+  .verdict .tier.deep { color: var(--deep); }
+  .verdict .labels { display: flex; gap: 6px; flex-wrap: wrap; }
+  .output h3 { font-size: 15px; margin: 22px 0 8px; }
+  .reasons { margin: 0; padding-left: 18px; }
+  .reasons li { margin-bottom: 6px; }
+  .reasons:empty::before { content: "No deep-review rule matched."; color: var(--muted); margin-left: -18px; }
+  .gate { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 8px; margin-top: 18px; }
+  .gate.pass { background: var(--light-bg); }
+  .gate.wait { background: var(--wait-bg); }
+  .gate strong { display: block; }
+  .gate span { font-size: 15px; }
+  .stats { color: var(--muted); font-size: 14px; margin-top: 16px; }
+
+
+  /* Kit + start */
+  .kit { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; align-items: start; }
+  pre {
+    margin: 0; padding: 18px 20px; overflow-x: auto;
+    background: var(--surface); border: 1px solid var(--rule); border-radius: 8px;
+    font: 13.5px/1.65 var(--mono);
+  }
+  .tree .c { color: var(--muted); }
+  .cmds { position: relative; }
+  .copy {
+    position: absolute; top: 10px; right: 10px;
+    font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    padding: 4px 10px; border-radius: 5px; border: 1px solid var(--rule-strong); background: var(--paper); color: var(--ink);
+  }
+  .steps { margin: 18px 0 0; padding-left: 20px; }
+  .steps li { margin-bottom: 8px; }
+
+  footer { border-top: 1px solid var(--rule); padding: 36px 0 56px; color: var(--muted); font-size: 15px; }
+  footer p { max-width: 80ch; margin: 0 0 8px; }
+
+  @media (max-width: 900px) {
+    .hero .wrap { grid-template-columns: minmax(0, 1fr); gap: 40px; padding-top: 48px; padding-bottom: 56px; }
+    .passes { grid-template-columns: minmax(0, 1fr); }
+    .passes li + li { padding-left: 0; border-left: 0; border-top: 1px solid var(--rule); }
+    .router { grid-template-columns: minmax(0, 1fr); }
+    .router .input { border-right: 0; border-bottom: 1px solid var(--rule); }
+    .kit { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+  }
+  @media (max-width: 560px) {
+    .wrap { padding: 0 16px; }
+    .top nav { gap: 14px; }
+    .toggles { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Three-Pass Code Review, top of page">
+      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">
+        <rect x="1" y="3" width="24" height="5" rx="1.5" fill="currentColor" opacity=".35"/>
+        <rect x="1" y="10.5" width="24" height="5" rx="1.5" fill="currentColor" opacity=".6"/>
+        <rect x="1" y="18" width="24" height="5" rx="1.5" fill="currentColor"/>
+      </svg>
+      Three-Pass Code Review
+    </a>
+    <nav aria-label="Main">
+      <a href="#passes">The passes</a>
+      <a href="#router">Try the router</a>
+      <a href="#start">Get started</a>
+      <a href="../" data-repo="">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="wrap">
+      <div>
+        <h1><span>AI reads every line.</span><span>People own the risk.</span></h1>
+        <p class="lede">A guide and drop-in GitHub kit for reviewing code when agents write most of it. Two different AI reviewers check every PR. People spend their time only where a mistake would hurt.</p>
+        <div class="actions">
+          <a class="btn primary" href="../docs/01-why.md" data-repo="/blob/main/guide/docs/01-why.md">Read the guide</a>
+          <a class="btn secondary" href="../docs/setup.md" data-repo="/blob/main/guide/docs/setup.md">Set it up in 30 minutes</a>
+        </div>
+      </div>
+
+      <div class="checks" role="img" aria-label="Example pull request: Copilot left 3 comments, the agent review escalated it to deep review because a removed method still has callers, and the merge gate is waiting for 2 approvals.">
+        <header>
+          <strong>Replace dismiss() with requestChanges()</strong>
+          <span>#482 · 9 files · <span class="path">+212 −61</span></span>
+        </header>
+        <div class="check">
+          <i class="dot info"></i>
+          <div><div class="who">Pass 1 · Copilot</div><div class="what">3 comments. One high: missing null check in <span class="path">submitReview</span>.</div></div>
+          <span class="pill muted">Commented</span>
+        </div>
+        <div class="check">
+          <i class="dot deep"></i>
+          <div><div class="who">Pass 2 · Agent review</div><div class="what">Critical: <span class="path">dismiss()</span> was removed but <span class="path">actions.ts:88</span> still calls it.</div></div>
+          <span class="pill deep">Escalated</span>
+        </div>
+        <div class="check">
+          <i class="dot deep"></i>
+          <div><div class="who">Review tier</div><div class="what">Deep: escalated by the agent review. Owners: @acme/reviews</div></div>
+          <span class="pill deep">tier/deep</span>
+        </div>
+        <div class="check">
+          <i class="dot wait"></i>
+          <div><div class="who">Pass 3 · review-gate</div><div class="what">Deep review: 1 of 2 approvals on the latest commit.</div></div>
+          <span class="pill wait">Waiting</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="passes" aria-labelledby="passes-h">
+    <div class="wrap">
+      <h2 id="passes-h">Three passes, in order</h2>
+      <p class="intro">Every PR gets the first two. The third depends on what the PR touches, not on who wrote it.</p>
+      <ol class="passes">
+        <li>
+          <span class="n" aria-hidden="true">1</span>
+          <h3>Copilot auto review</h3>
+          <p class="meta">Every PR, every push · seconds</p>
+          <p>Fast line comments with fixes you can apply in one click.</p>
+          <ul>
+            <li>Bugs and unhandled edge cases</li>
+            <li>Security slips</li>
+            <li>Broken contracts and weakened tests</li>
+          </ul>
+        </li>
+        <li>
+          <span class="n" aria-hidden="true">2</span>
+          <h3>Agent review</h3>
+          <p class="meta">Every ready PR, every push · minutes</p>
+          <p>A different AI runs a five-axis review, using Addy Osmani's code-review skill, and reports only what it can prove.</p>
+          <ul>
+            <li>Correctness, readability, architecture, security, performance</li>
+            <li>Blast radius: who still calls what changed</li>
+            <li>Can only escalate, never approve</li>
+          </ul>
+        </li>
+        <li>
+          <span class="n" aria-hidden="true">3</span>
+          <h3>Deep review</h3>
+          <p class="meta">Only high blast radius · 30–60 minutes</p>
+          <p>The code owner and a second reviewer spend their time where it pays.</p>
+          <ul>
+            <li>Verify the tests would catch a regression</li>
+            <li>Check constraints and every changed contract</li>
+            <li>Make sure it can be rolled back</li>
+          </ul>
+        </li>
+      </ol>
+      <p class="note">Light PRs still get a human approval: a 5-minute check after both AI reviews are clean. The <code>review-gate</code> status won't pass until the agent review is clean on the latest commit.</p>
+    </div>
+  </section>
+
+  <section class="band" id="router" aria-labelledby="router-h">
+    <div class="wrap">
+      <h2 id="router-h">Try the router</h2>
+      <p class="intro">Pick an example or type a PR's changed files. This uses the same rules as the kit's default <code>review-policy.yml</code>.</p>
+
+      <div class="router">
+        <div class="input">
+          <div class="presets" role="group" aria-label="Example pull requests" id="presets"></div>
+
+          <label class="field" for="files">Changed files</label>
+          <textarea id="files" spellcheck="false" aria-describedby="files-hint"></textarea>
+          <p class="hint" id="files-hint">One file per line: <code>M path +added -deleted</code>. Use <code>A</code> added, <code>M</code> modified, <code>D</code> deleted, or <code>R old -&gt; new</code> for renames.</p>
+
+          <div class="toggles">
+            <label><input type="checkbox" id="fork"> From a fork</label>
+            <label><input type="checkbox" id="first"> First-time contributor</label>
+            <label><input type="checkbox" id="escalate"> <code>escalate/deep</code> label</label>
+            <label><input type="checkbox" id="skip"> <code>skip-agent-review</code> label</label>
+          </div>
+
+          <div class="row">
+            <div>
+              <label class="field" for="agent">Agent review on latest commit</label>
+              <select id="agent">
+                <option value="clean">Clean</option>
+                <option value="escalated">Found a Critical issue</option>
+                <option value="pending">Still running</option>
+                <option value="failed">Didn't finish</option>
+              </select>
+            </div>
+            <div>
+              <label class="field" for="approvals">Approvals on latest commit</label>
+              <input type="number" id="approvals" min="0" max="9" value="1">
+            </div>
+          </div>
+        </div>
+
+        <div class="output" aria-live="polite">
+          <div class="verdict">
+            <span class="tier" id="tier">Light</span>
+            <span class="labels" id="labels"></span>
+          </div>
+          <h3>Why</h3>
+          <ul class="reasons" id="reasons"></ul>
+          <div class="gate" id="gate">
+            <i class="dot" id="gate-dot"></i>
+            <div><strong id="gate-title"></strong><span id="gate-text"></span></div>
+          </div>
+          <p class="stats" id="stats"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <section class="band" id="start" aria-labelledby="start-h">
+    <div class="wrap kit">
+      <div>
+        <h2 id="start-h">Get started</h2>
+        <div class="cmds">
+          <button class="copy" type="button" data-copy="cmds">Copy</button>
+<pre id="cmds">cd your-repo
+bash ../three-pass-review/guide/scripts/install.sh .
+bash ../three-pass-review/guide/scripts/create-labels.sh org/repo
+gh secret set ANTHROPIC_API_KEY -R org/repo</pre>
+        </div>
+        <ol class="steps">
+          <li>Set your sensitive paths in <code>review-policy.yml</code> and <code>CODEOWNERS</code>.</li>
+          <li>Turn on the branch ruleset and automatic Copilot review.</li>
+          <li>Merge the setup PR, run in shadow mode for two weeks, then require <code>review-gate</code>.</li>
+        </ol>
+        <p><a href="../docs/setup.md" data-repo="/blob/main/guide/docs/setup.md">Full setup guide</a> · <a href="../docs/09-rollout.md" data-repo="/blob/main/guide/docs/09-rollout.md">Rollout plan</a></p>
+      </div>
+      <div>
+        <h2>What you get</h2>
+<pre class="tree" aria-label="Files the kit adds to your repository">.github/
+  review-policy.yml        <span class="c">routing rules</span>
+  CODEOWNERS               <span class="c">who signs off</span>
+  copilot-instructions.md  <span class="c">pass 1 focus</span>
+  pull_request_template.md <span class="c">the author's side</span>
+  review/                  <span class="c">light + deep checklists</span>
+  workflows/
+    review-tier.yml        <span class="c">tier + review-gate</span>
+    review-submitted.yml   <span class="c">re-checks on approval</span>
+    agent-review.yml       <span class="c">pass 2</span>
+  scripts/                 <span class="c">tier rules, poster</span>
+.claude/review/
+  agent-review.md          <span class="c">pass 2 instructions</span>
+  skills/code-review-and-quality/
+                           <span class="c">review skill, pinned</span></pre>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Pass 2 uses Addy Osmani's MIT-licensed <a href="https://github.com/addyosmani/agent-skills/tree/main/skills/code-review-and-quality">code-review-and-quality</a> skill. Pass 2 runs on <a href="https://github.com/anthropics/claude-code-action">claude-code-action</a>; pass 1 is <a href="https://docs.github.com/en/copilot/how-tos/use-copilot-agents/request-a-code-review/use-code-review">GitHub Copilot code review</a>.</p>
+    <p>Not affiliated with or endorsed by Addy Osmani, GitHub or Anthropic. MIT licensed.</p>
+  </div>
+</footer>
+
+<script>
+(() => {
+  // Links: relative paths work when the file is opened from the repo; on
+  // GitHub Pages (<user>.github.io/<repo>/) they point at the repo on GitHub.
+  const host = location.hostname.match(/^([^.]+)\.github\.io$/);
+  const repoName = location.pathname.split('/').filter(Boolean)[0];
+  if (host && repoName) {
+    const repo = `https://github.com/${host[1]}/${repoName}`;
+    document.querySelectorAll('[data-repo]').forEach((a) => { a.href = repo + a.dataset.repo; });
+  }
+
+  // Copy buttons
+  document.querySelectorAll('[data-copy]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const text = document.getElementById(btn.dataset.copy).textContent;
+      try { await navigator.clipboard.writeText(text); btn.textContent = 'Copied'; }
+      catch { btn.textContent = 'Select and copy'; }
+      setTimeout(() => { btn.textContent = 'Copy'; }, 1600);
+    });
+  });
+
+  // ---- The router: same rules and defaults as templates/.github/review-policy.yml ----
+  const POLICY = {
+    sensitive: [
+      { pattern: 'src/auth/**', owners: '@your-org/security', why: 'authentication and sessions' },
+      { pattern: 'src/payments/**', owners: '@your-org/payments', why: 'money movement' },
+      { pattern: 'db/migrations/**', owners: '@your-org/data', why: 'schema changes are hard to roll back' },
+      { pattern: 'infra/**', owners: '@your-org/platform', why: 'production infrastructure' },
+    ],
+    machinery: ['.github/workflows/**', '.github/review-policy.yml', '.github/scripts/**', '.github/review/**',
+      '.github/copilot-instructions.md', '.github/instructions/**', '.github/skills/**', '.github/agents/**',
+      'CODEOWNERS', '.claude/**', '.agents/**', 'CLAUDE.md', 'AGENTS.md', 'REVIEW.md', 'GEMINI.md'],
+    ignore: ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lockb', 'poetry.lock', 'uv.lock', 'Cargo.lock',
+      'go.sum', 'Gemfile.lock', '*.snap', '**/__generated__/**', '**/generated/**', '*.min.js', '*.min.css'],
+    deps: ['package.json', 'requirements*.txt', 'pyproject.toml', 'go.mod', 'Cargo.toml', 'Gemfile', 'pom.xml', 'build.gradle*', '*.csproj'],
+    gates: ['.eslintrc*', 'eslint.config.*', 'biome.json*', 'tsconfig*.json', 'jest.config.*', 'vitest.config.*',
+      'playwright.config.*', '.coveragerc', 'codecov.yml', 'pytest.ini', 'ruff.toml', '.golangci.y*ml'],
+    tests: ['**/test/**', '**/tests/**', '**/__tests__/**', '*.test.*', '*.spec.*', '*_test.*', 'test_*.py'],
+    t: { deep: 400, split: 1000, files: 30, areas: 3, ignored: 5000 },
+    minApprovals: 2,
+  };
+
+  const cache = new Map();
+  function globRe(glob) {
+    if (cache.has(glob)) return cache.get(glob);
+    let g = glob.trim();
+    if (g.startsWith('/')) g = g.slice(1);
+    if (g.endsWith('/')) g += '**';
+    if (!g.includes('/')) g = '**/' + g;
+    let re = '';
+    for (let i = 0; i < g.length; i++) {
+      const c = g[i];
+      if (c === '*') {
+        if (g[i + 1] === '*') {
+          if ((i === 0 || g[i - 1] === '/') && g[i + 2] === '/') { re += '(?:.*/)?'; i += 2; }
+          else { re += '.*'; i += 1; }
+        } else re += '[^/]*';
+      } else if (c === '?') re += '[^/]';
+      else re += c.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+    }
+    const r = new RegExp('^' + re + '$');
+    cache.set(glob, r);
+    return r;
+  }
+  const match = (p, globs) => globs.some((g) => globRe(g).test(p));
+
+  function parse(text) {
+    const files = [];
+    for (const raw of text.split('\n')) {
+      const line = raw.trim();
+      if (!line) continue;
+      const m = line.match(/^([AMDR])\s+(.+?)(?:\s+\+(\d+))?(?:\s+-(\d+))?$/);
+      if (!m) { files.push({ bad: line }); continue; }
+      const [, s, rest, add, del] = m;
+      const status = { A: 'added', M: 'modified', D: 'removed', R: 'renamed' }[s];
+      let filename = rest, previous;
+      const arrow = rest.split(/\s*->\s*/);
+      if (s === 'R' && arrow.length === 2) { previous = arrow[0]; filename = arrow[1]; }
+      files.push({ filename, previous_filename: previous, status, additions: +add || 0, deletions: +del || 0 });
+    }
+    return files;
+  }
+
+  function decide(files, ctx) {
+    const reasons = [];
+    const owners = new Set();
+    const pathsOf = (f) => [f.filename, f.previous_filename].filter(Boolean);
+    const touching = (globs) => files.filter((f) => pathsOf(f).some((x) => match(x, globs))).map((f) => f.filename);
+    const isTest = (x) => match(x, POLICY.tests);
+    const isIgnored = (x) => match(x, POLICY.ignore);
+    const list = (a) => a.slice(0, 3).join(', ') + (a.length > 3 ? ` and ${a.length - 3} more` : '');
+
+    if (ctx.escalate) reasons.push('Escalated with the escalate/deep label. Only a maintainer can remove it.');
+    if (ctx.skip) reasons.push('Has skip-agent-review. Light review needs a clean agent review.');
+    if (ctx.fork) reasons.push('Comes from a fork. The agent review doesn\'t run on forks.');
+    const mach = touching(POLICY.machinery);
+    if (mach.length) reasons.push(`Changes the review setup itself: ${list(mach)}.`);
+    for (const s of POLICY.sensitive) {
+      const hit = touching([s.pattern]);
+      if (hit.length) { owners.add(s.owners); reasons.push(`Touches ${s.pattern} (${s.why}).`); }
+    }
+    const goneTests = files.filter((f) => (f.status === 'removed' && isTest(f.filename)) ||
+      (f.status === 'renamed' && f.previous_filename && isTest(f.previous_filename) && !isTest(f.filename)));
+    if (goneTests.length) reasons.push(`Deletes or renames away tests: ${list(goneTests.map((f) => f.previous_filename || f.filename))}.`);
+    const gates = touching(POLICY.gates);
+    if (gates.length) reasons.push(`Changes lint, test or coverage config: ${list(gates)}.`);
+    const goneSrc = files.filter((f) => (f.status === 'removed' && !isTest(f.filename) && !isIgnored(f.filename)) ||
+      (f.status === 'renamed' && f.previous_filename && !isIgnored(f.previous_filename) && isIgnored(f.filename)));
+    if (goneSrc.length) reasons.push(`Deletes source files (does anything still call them?): ${list(goneSrc.map((f) => f.previous_filename || f.filename))}.`);
+    const deps = touching(POLICY.deps);
+    if (deps.length) reasons.push(`Changes dependencies: ${list(deps)}.`);
+
+    const counted = files.filter((f) => !isIgnored(f.filename));
+    const sum = (a) => a.reduce((n, f) => n + f.additions + f.deletions, 0);
+    const lines = sum(counted);
+    const ignoredLines = sum(files) - lines;
+    const areas = [...new Set(files.map((f) => (f.filename.includes('/') ? f.filename.split('/')[0] : '(root)')))];
+    const split = lines > POLICY.t.split;
+    if (split) reasons.push(`${lines.toLocaleString()} changed lines is past the ${POLICY.t.split.toLocaleString()}-line split threshold. Please split it.`);
+    else if (lines > POLICY.t.deep) reasons.push(`${lines.toLocaleString()} changed lines (light review stops at ${POLICY.t.deep}).`);
+    if (ignoredLines > POLICY.t.ignored) reasons.push(`${ignoredLines.toLocaleString()} lines in generated or lock files. Check they really are generated.`);
+    if (files.length > POLICY.t.files) reasons.push(`${files.length} files changed (light review stops at ${POLICY.t.files}).`);
+    if (areas.length > POLICY.t.areas) reasons.push(`Cross-cutting: touches ${areas.length} top-level folders.`);
+    if (ctx.first) reasons.push('First contribution from this author.');
+
+    return { tier: reasons.length ? 'deep' : 'light', reasons, owners: [...owners], split, lines, ignoredLines, files: files.length, areas: areas.length };
+  }
+
+  const PRESETS = [
+    { name: 'Fix button padding', files: 'M src/ui/Button.tsx +6 -2\nM src/ui/Button.test.tsx +14 -0', agent: 'clean', approvals: 1 },
+    { name: 'Retry failed refunds', files: 'M src/payments/refund.ts +120 -30\nM src/payments/refund.test.ts +60 -4', agent: 'clean', approvals: 1 },
+    { name: 'Remove legacy export', files: 'D src/legacy/exportCsv.ts +0 -210\nM src/reviews/actions.ts +4 -9', agent: 'clean', approvals: 1 },
+    { name: 'Agent finds a bug', files: 'M lib/reviews/session.ts +14 -12\nM app/reviews/actions.ts +5 -1', agent: 'escalated', approvals: 1 },
+    { name: 'Loosen coverage', files: 'M vitest.config.ts +1 -1\nD src/utils/date.test.ts +0 -48', agent: 'clean', approvals: 2 },
+    { name: 'Big refactor', files: 'M api/orders.ts +240 -180\nM web/cart.tsx +160 -90\nM worker/jobs.ts +120 -40\nM shared/money.ts +80 -20\nM package-lock.json +900 -400', agent: 'clean', approvals: 0 },
+  ];
+
+  const $ = (id) => document.getElementById(id);
+  const presetsEl = $('presets');
+  PRESETS.forEach((p, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = p.name;
+    b.setAttribute('aria-pressed', 'false');
+    b.addEventListener('click', () => load(i));
+    presetsEl.appendChild(b);
+  });
+
+  function load(i) {
+    const p = PRESETS[i];
+    $('files').value = p.files;
+    $('agent').value = p.agent;
+    $('approvals').value = p.approvals;
+    ['fork', 'first', 'escalate', 'skip'].forEach((id) => { $(id).checked = false; });
+    [...presetsEl.children].forEach((b, j) => b.setAttribute('aria-pressed', String(i === j)));
+    render();
+  }
+
+  function chip(text, cls) {
+    const s = document.createElement('span');
+    s.className = `pill ${cls}`;
+    s.textContent = text;
+    return s;
+  }
+
+  function render() {
+    const parsed = parse($('files').value);
+    const bad = parsed.filter((f) => f.bad);
+    const files = parsed.filter((f) => !f.bad);
+    const agent = $('agent').value;
+    const ctx = {
+      fork: $('fork').checked,
+      first: $('first').checked,
+      skip: $('skip').checked,
+      // A Critical finding makes the agent add escalate/deep.
+      escalate: $('escalate').checked || agent === 'escalated',
+    };
+    const r = decide(files, ctx);
+
+    const tierEl = $('tier');
+    tierEl.textContent = r.tier === 'deep' ? 'Deep' : 'Light';
+    tierEl.className = `tier ${r.tier}`;
+
+    const labels = $('labels');
+    labels.replaceChildren(chip(`tier/${r.tier}`, r.tier));
+    if (ctx.escalate) labels.appendChild(chip('escalate/deep', 'deep'));
+    if (r.split) labels.appendChild(chip('needs-split', 'wait'));
+
+    const reasons = $('reasons');
+    reasons.replaceChildren(...r.reasons.map((t) => { const li = document.createElement('li'); li.textContent = t; return li; }));
+    if (bad.length) {
+      const li = document.createElement('li');
+      li.textContent = `Couldn't read ${bad.length === 1 ? 'this line' : `${bad.length} lines`}: ${bad[0].bad}`;
+      li.style.color = 'var(--del)';
+      reasons.appendChild(li);
+    }
+
+    const approvals = Math.max(0, parseInt($('approvals').value, 10) || 0);
+    let pass, title, text;
+    if (r.tier === 'deep') {
+      pass = approvals >= POLICY.minApprovals;
+      title = pass ? 'review-gate passes' : 'review-gate is waiting';
+      text = `${approvals} of ${POLICY.minApprovals} approvals on the latest commit` +
+        (r.owners.length ? `, including the code owners (${r.owners.join(', ')}).` : '.');
+    } else if (agent === 'clean' && !ctx.skip) {
+      pass = true;
+      title = 'review-gate passes';
+      text = approvals >= 1
+        ? 'The agent review is clean on this commit, and someone approved after the 5-minute light check. Ready to merge.'
+        : 'The agent review is clean on this commit. It still needs one approval after the 5-minute light check.';
+    } else {
+      pass = false;
+      title = 'review-gate is waiting';
+      text = agent === 'failed' ? 'The agent review didn\'t finish on this commit. Re-run it, or escalate.'
+                                : 'Waiting for a clean agent review of the latest commit.';
+    }
+    $('gate').className = `gate ${pass ? 'pass' : 'wait'}`;
+    $('gate-dot').className = `dot ${pass ? 'ok' : 'wait'}`;
+    $('gate-title').textContent = title;
+    $('gate-text').textContent = text;
+
+    $('stats').textContent = `${r.lines.toLocaleString()} changed lines in ${r.files} ${r.files === 1 ? 'file' : 'files'} across ${r.areas} top-level ${r.areas === 1 ? 'folder' : 'folders'}` +
+      (r.ignoredLines ? `, plus ${r.ignoredLines.toLocaleString()} lines in generated or lock files (not counted).` : '.');
+  }
+
+  ['files', 'agent', 'approvals', 'fork', 'first', 'escalate', 'skip'].forEach((id) => {
+    $(id).addEventListener('input', () => {
+      [...presetsEl.children].forEach((b) => b.setAttribute('aria-pressed', 'false'));
+      render();
+    });
+  });
+  load(0);
+})();
+</script>
+</body>
+</html>
