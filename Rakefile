@@ -89,4 +89,15 @@ namespace :eval do
     puts "Results: #{dir}"
     puts "Label the unmatched findings in #{labels_dir}/#{File.basename(dir)}.yml, then run rake eval:report."
   end
+
+  desc "Rescore every run with the current labels and update the README table (real-API runs only)"
+  task :report do
+    tpr = ThreePassReview
+    results_root = ENV.fetch("EVAL_RESULTS", "evals/results")
+    labels_dir = ENV.fetch("EVAL_LABELS", "evals/labels")
+    cases = load_cases.call
+    readme = (results_root == "evals/results") ? "README.md" : nil
+    tpr::Eval::Report.new(results_root: results_root, cases: cases, labels_dir: labels_dir,
+      dataset_version: tpr::Eval::Dataset.version(cases_dir), readme_path: readme).run
+  end
 end
