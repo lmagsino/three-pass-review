@@ -62,7 +62,9 @@ diff + PR title/body + repo checkout
 
 ## The passes
 
-All three passes get the same base input: the diff, the PR title and body, and file excerpts. Pass 3 also gets the conventions files. Each pass has its own system prompt, stored as a versioned file in `lib/three_pass_review/prompts/`.
+All three passes get the same base input: the diff, the PR title and body, and file excerpts. Pass 3 also gets the conventions files. Each pass has its own system prompt, stored as a versioned file in `lib/three_pass_review/prompts/` (`shared.md` plus one file per pass). `combined.md` is the one-prompt reviewer used by the eval's `single` and `single_sampled` modes.
+
+The untrusted parts of the input are wrapped in `<<<BEGIN name id>>>` / `<<<END name id>>>` markers. The id is a hash of the wrapped content, so the content can't contain a valid END marker of its own.
 
 | Pass | Looks for | Ignores |
 |---|---|---|
@@ -79,7 +81,7 @@ Rules shared by all passes:
 
 ### Finding schema
 
-Each pass returns findings through a forced tool call (the `report_findings` tool, with a JSON schema), so output is always structured:
+Each pass returns findings through **structured outputs** (`output_config.format` with a JSON schema), so output is always structured. An earlier draft used a forced `report_findings` tool call, but `claude-sonnet-5-5` rejects a forced `tool_choice` with a 400. Anthropic documents structured outputs as the replacement when the forced call only existed to get JSON back. The schema can't carry numeric bounds (structured outputs reject `minimum`/`maximum`), so the 0–1 range of `confidence` is checked during validation.
 
 ```json
 {
@@ -103,12 +105,14 @@ Each pass returns findings through a forced tool call (the `report_findings` too
 
 | Field | Values |
 |---|---|
-| `category` | `correctness`, `security`, `architecture` (the pass that produced it) |
+| `category` | `correctness`, `security`, `architecture`: the producing pass's own area. The one exception is a prompt-injection attempt, which any pass reports as `security` (the correctness and architecture schemas allow it) |
 | `subcategory` | Free text from a suggested list per pass (for example `sql_injection`, `ssrf`, `pii_logging`, `off_by_one`, `nil_handling`, `broken_contract`, `layering`, `duplication`). The eval groups recall by it |
 | `severity` | `critical`, `high`, `medium`, `low` |
 | `confidence` | 0.0–1.0 |
 
-Findings that fail validation are dropped and counted in the output's `dropped_invalid`. Examples: the file isn't in the diff, the lines are outside the changed hunks plus a margin, or a field is missing.
+Findings that fail validation are dropped and counted in the output's `dropped_invalid`. Examples: the file isn't in the diff (or was deleted), the lines are outside the changed hunks plus a 3-line margin, `confidence` is outside 0–1, or a field is missing.
+
+A pass whose reply can't be used (a refusal, output cut off at `max_output_tokens`, invalid JSON, an API error) is reported as failed in the output. The other passes still run, and any tokens the failed call used are still counted in the cost.
 
 ## Independence: how it's enforced
 
@@ -244,10 +248,11 @@ lib/three_pass_review/
   context_builder.rb                  excerpts, conventions files, frozen base input
   budget.rb                           estimate, ceiling, degradation, usage accounting
   llm/client.rb                       provider interface
-  llm/anthropic_client.rb             Messages API + forced tool call for findings
+  llm/anthropic_client.rb             Messages API + structured outputs for findings
   llm/fake_client.rb                  replays fixtures, records requests (tests and evals)
-  passes/base.rb, correctness.rb, security.rb, architecture.rb
-  prompts/correctness.md, security.md, architecture.md, shared.md   (versioned, hashed into output)
+  passes/base.rb                      Correctness, Security, Architecture, and Combined (single modes)
+  prompts.rb                          loads prompts, hashes them
+  prompts/shared.md, correctness.md, security.md, architecture.md, combined.md   (versioned, hashed into output)
   finding.rb                          schema + validation
   runner.rb                           modes: independent, chained, single, single_sampled
   reconciler.rb

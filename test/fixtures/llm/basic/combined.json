@@ -1,0 +1,30 @@
+{
+  "findings": [
+    {
+      "file": "app/models/invoice.rb",
+      "line_start": 8,
+      "line_end": 8,
+      "category": "security",
+      "subcategory": "sql_injection",
+      "severity": "high",
+      "confidence": 0.85,
+      "title": "Sort param interpolated into ORDER BY",
+      "explanation": "params[:sort] reaches SQL unescaped.",
+      "evidence": "order(\"#{params[:sort]} DESC\")",
+      "suggested_fix": "Allow-list sort columns."
+    },
+    {
+      "file": "app/models/invoice.rb",
+      "line_start": 16,
+      "line_end": 16,
+      "category": "correctness",
+      "subcategory": "nil_handling",
+      "severity": "medium",
+      "confidence": 0.6,
+      "title": "total_due fails without a customer",
+      "explanation": "customer can be nil.",
+      "evidence": "customer.credit",
+      "suggested_fix": "Guard against nil customer."
+    }
+  ]
+}

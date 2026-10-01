@@ -25,6 +25,17 @@ module ThreePassReview
     value.freeze
   end
 
+  def self.deep_frozen?(value)
+    return false unless value.frozen?
+
+    case value
+    when Hash then value.each_value.all? { |v| deep_frozen?(v) }
+    when Array then value.all? { |v| deep_frozen?(v) }
+    when Data then value.to_h.each_value.all? { |v| deep_frozen?(v) }
+    else true
+    end
+  end
+
   # Gathers context deterministically before any model call: excerpts of each
   # changed file around its hunks (head version), and the conventions files
   # the architecture pass judges against.

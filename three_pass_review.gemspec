@@ -20,4 +20,6 @@ Gem::Specification.new do |spec|
   spec.bindir = "exe"
   spec.executables = ["threepass"]
   spec.require_paths = ["lib"]
+
+  spec.add_dependency "anthropic", "~> 1.76"
 end

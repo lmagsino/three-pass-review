@@ -1,0 +1,43 @@
+{
+  "findings": [
+    {
+      "file": "app/models/invoice.rb",
+      "line_start": 16,
+      "line_end": 16,
+      "category": "correctness",
+      "subcategory": "nil_handling",
+      "severity": "medium",
+      "confidence": 0.72,
+      "title": "Nil customer not handled in total_due",
+      "explanation": "Invoices without a customer raise NoMethodError when total_due is called.",
+      "evidence": "line_items.sum(&:amount) - customer.credit",
+      "suggested_fix": "Use customer&.credit.to_i."
+    },
+    {
+      "file": "app/models/invoice.rb",
+      "line_start": 8,
+      "line_end": 8,
+      "category": "correctness",
+      "subcategory": "logic_error",
+      "severity": "high",
+      "confidence": 0.55,
+      "title": "Sort column is not checked against SORTABLE",
+      "explanation": "Any column name is accepted, so an unknown column raises at query time.",
+      "evidence": "order(\"#{params[:sort]} DESC\")",
+      "suggested_fix": "Fall back to created_at unless SORTABLE includes the param."
+    },
+    {
+      "file": "app/models/invoice.rb",
+      "line_start": 100,
+      "line_end": 100,
+      "category": "correctness",
+      "subcategory": "boundary",
+      "severity": "low",
+      "confidence": 0.4,
+      "title": "Invoice counts as overdue on its due date",
+      "explanation": "Changing < to <= marks invoices overdue on the day they are due.",
+      "evidence": "due_on <= Date.current",
+      "suggested_fix": "Keep < unless the PR means to change this."
+    }
+  ]
+}
