@@ -1,0 +1,22 @@
+# Synthetic test fixture for the harness's own tests. Not part of the dataset.
+id: t-real
+kind: real
+language: ruby
+source:
+  repo: https://github.com/example/app
+  license: MIT
+  pr: https://github.com/example/app/pull/1
+  introduced_by: aaaaaaa
+  fixed_by: bbbbbbb
+  merged_at: 2026-08-01
+pr:
+  title: "Add sortable invoices"
+  body: "Sort invoices by column."
+defects:
+  - id: d1
+    file: app/models/invoice.rb
+    lines: [8, 8]
+    category: security
+    subcategory: sql_injection
+    severity: high
+    description: "params[:sort] interpolated into ORDER BY."

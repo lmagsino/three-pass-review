@@ -1,0 +1,22 @@
+# Synthetic test fixture for the harness's own tests. Not part of the dataset.
+id: t-planted
+kind: planted
+language: ruby
+source:
+  repo: https://github.com/example/app
+  license: Apache-2.0
+  pr: https://github.com/example/app/pull/2
+  introduced_by: ccccccc
+  merged_at: 2026-01-15
+pr:
+  title: "Add sortable invoices"
+  body: "Sort invoices by column."
+defects:
+  - id: d1
+    file: app/models/invoice.rb
+    lines: [16, 16]
+    category: correctness
+    subcategory: nil_handling
+    severity: medium
+    description: "customer can be nil."
+notes: "Planted: removed the nil guard on customer."

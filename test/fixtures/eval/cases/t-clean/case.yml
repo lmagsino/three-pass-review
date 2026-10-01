@@ -1,0 +1,14 @@
+# Synthetic test fixture for the harness's own tests. Not part of the dataset.
+id: t-clean
+kind: clean
+language: ruby
+source:
+  repo: https://github.com/example/app
+  license: BSD-3-Clause
+  pr: https://github.com/example/app/pull/3
+  introduced_by: ddddddd
+  merged_at: 2025-12-01
+pr:
+  title: "Capitalise beta"
+  body: ""
+defects: []
