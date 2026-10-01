@@ -47,14 +47,18 @@ module ThreePassReview
 
     # Tries each step in order and returns the first plan under the ceiling:
     # full context, smaller excerpts, diff only, diff only without the
-    # architecture pass. Raises Refused when none fits.
+    # architecture pass, then without the brief. Raises Refused when none fits.
     def plan(builder:, diff:, title:, body:, runner:, mode:, passes:, lines_around_hunk:, reduced_lines_around_hunk:)
       steps = [[nil, lines_around_hunk, passes]]
       steps << ["smaller_excerpts", reduced_lines_around_hunk, passes] if reduced_lines_around_hunk < lines_around_hunk
       steps << ["diff_only", nil, passes]
-      if %w[independent chained].include?(mode) && passes.include?("architecture") && passes.size > 1
-        steps << ["skipped_architecture", nil, passes - ["architecture"]]
+      remaining = passes
+      checks = passes - [Runner::BRIEF]
+      if %w[independent chained].include?(mode) && checks.include?("architecture") && checks.size > 1
+        remaining -= ["architecture"]
+        steps << ["skipped_architecture", nil, remaining]
       end
+      steps << ["skipped_brief", nil, remaining - [Runner::BRIEF]] if remaining.include?(Runner::BRIEF)
 
       degradations = []
       estimate = nil

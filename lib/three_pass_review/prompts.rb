@@ -7,7 +7,7 @@ module ThreePassReview
   # run, so a result can always be traced to the exact prompt text.
   module Prompts
     DIR = File.expand_path("prompts", __dir__)
-    NAMES = %w[shared correctness security architecture combined].freeze
+    NAMES = %w[shared correctness security architecture combined brief].freeze
 
     class << self
       def read(name)

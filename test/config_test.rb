@@ -88,4 +88,10 @@ class ConfigTest < Minitest::Test
   def test_missing_file_is_an_error
     assert_raises(ThreePassReview::Config::Invalid) { ThreePassReview::Config.load("/nonexistent/.threepass.yml") }
   end
+
+  def test_brief_is_off_by_default_and_must_be_boolean
+    refute config.brief_enabled?
+    assert config("brief" => {"enabled" => true}).brief_enabled?
+    assert_raises(ThreePassReview::Config::Invalid) { config("brief" => {"enabled" => "yes"}) }
+  end
 end

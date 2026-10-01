@@ -10,7 +10,8 @@
       "correctness": "sha256:HASH",
       "security": "sha256:HASH",
       "architecture": "sha256:HASH",
-      "combined": "sha256:HASH"
+      "combined": "sha256:HASH",
+      "brief": "sha256:HASH"
     }
   },
   "findings": [

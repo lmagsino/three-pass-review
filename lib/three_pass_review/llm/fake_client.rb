@@ -9,8 +9,9 @@ module ThreePassReview
     #
     # A fixture directory holds one JSON file per pass: <pass>-<call>.json is
     # used for that pass's nth call if present, otherwise <pass>.json. Each
-    # file is {"findings": [...]}, optionally with "usage", "stop_reason" and
-    # "error". Without "usage", tokens are estimated from the text sizes.
+    # file is {"findings": [...]} (or, for the brief, the brief's own object),
+    # optionally with "usage", "stop_reason" and "error". Without "usage",
+    # tokens are estimated from the text sizes.
     class FakeClient < Client
       attr_reader :requests
 
@@ -32,7 +33,9 @@ module ThreePassReview
         end
         @on_complete&.call(request)
         fixture = fixture_for(request.pass, call)
-        output = JSON.generate("findings" => fixture.fetch("findings", []))
+        # A check replies with findings; the brief replies with its own object.
+        reply = (request.pass == "brief") ? fixture.except("usage", "stop_reason", "error") : {"findings" => fixture.fetch("findings", [])}
+        output = JSON.generate(reply)
         usage = fixture["usage"] || {}
         Response.new(
           data: fixture["error"] ? nil : JSON.parse(output),

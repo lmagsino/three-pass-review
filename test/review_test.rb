@@ -50,4 +50,30 @@ class ReviewTest < Minitest::Test
     outcome = review(config, enforce_ceiling: false).run(diff_text: fixture_diff.text)
     assert_nil outcome.accounting.total_usd
   end
+
+  def test_brief_runs_only_when_asked_and_only_in_independent_mode
+    client = ThreePassReview::LLM::FakeClient.new(BASIC)
+    plain = review(client: client).run(diff_text: fixture_diff.text)
+    assert_nil plain.brief
+    refute_includes client.requests.map(&:pass), "brief"
+
+    with_brief = review.run(diff_text: fixture_diff.text, brief: true)
+    assert_match(/Adds sorting/, with_brief.brief.summary)
+    assert_operator with_brief.change_map.areas.size, :>=, 1
+
+    chained = review.run(diff_text: fixture_diff.text, mode: "chained", brief: true)
+    assert_nil chained.brief
+  end
+
+  def test_a_failed_brief_is_reported_and_the_findings_still_come_back
+    client = ThreePassReview::LLM::FakeClient.new(nil, responses: {
+      "correctness" => {"findings" => []}, "security" => {"findings" => []}, "architecture" => {"findings" => []},
+      "brief" => {"error" => "output cut off at max_output_tokens (4000); raise it"}
+    })
+    outcome = review(client: client).run(diff_text: fixture_diff.text, brief: true)
+
+    assert_nil outcome.brief
+    assert_match(/cut off/, outcome.brief_error)
+    assert_equal 4, outcome.result.pass_results.size
+  end
 end

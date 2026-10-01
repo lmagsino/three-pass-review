@@ -72,4 +72,22 @@ class IndependenceTest < Minitest::Test
     refute_nil id
     assert_equal 1, user.scan("<<<END diff #{id}>>>").size
   end
+
+  def test_the_brief_and_the_checks_never_see_each_other
+    client = ThreePassReview::LLM::FakeClient.new(BASIC)
+    ThreePassReview::Runner.new(client: client, model: "claude-sonnet-5-5")
+      .run(base_input, passes: PASSES + ["brief"])
+    requests = client.requests.to_h { |r| [r.pass, r] }
+    brief = requests.fetch("brief")
+    brief_text = JSON.parse(File.read(File.join(BASIC, "brief.json")))["summary"]
+
+    assert_equal ThreePassReview::Prompts.read("brief"), brief.system
+    PASSES.each do |pass|
+      outputs_of(pass).each { |text| refute_includes brief.user, text }
+      refute_includes brief.system + brief.user, ThreePassReview::Prompts.read(pass)
+      refute_includes requests.fetch(pass).system + requests.fetch(pass).user, ThreePassReview::Prompts.read("brief")
+      refute_includes requests.fetch(pass).user, brief_text
+      assert_equal @requests.fetch(pass), requests.fetch(pass), "adding the brief changed the #{pass} request"
+    end
+  end
 end

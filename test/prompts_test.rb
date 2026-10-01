@@ -6,7 +6,7 @@ class PromptsTest < Minitest::Test
   def test_every_prompt_has_a_sha256_hash
     hashes = ThreePassReview::Prompts.hashes
 
-    assert_equal %w[shared correctness security architecture combined], hashes.keys
+    assert_equal %w[shared correctness security architecture combined brief], hashes.keys
     hashes.each_value { |h| assert_match(/\Asha256:\h{64}\z/, h) }
   end
 

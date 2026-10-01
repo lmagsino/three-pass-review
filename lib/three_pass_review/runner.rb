@@ -1,7 +1,12 @@
 # frozen_string_literal: true
 
 module ThreePassReview
-  PassResult = Data.define(:pass, :sample, :findings, :input_tokens, :output_tokens, :stop_reason, :error) do
+  # data holds the brief's parsed reply; checks report findings instead.
+  PassResult = Data.define(:pass, :sample, :findings, :input_tokens, :output_tokens, :stop_reason, :error, :data) do
+    def initialize(data: nil, **rest)
+      super
+    end
+
     def ok?
       error.nil?
     end
@@ -14,6 +19,7 @@ module ThreePassReview
   class Runner
     MODES = %w[independent chained single single_sampled].freeze
     PASS_ORDER = %w[correctness security architecture].freeze
+    BRIEF = "brief"
 
     attr_reader :model, :max_output_tokens, :samples
 
@@ -28,9 +34,12 @@ module ThreePassReview
     # Requests whose content is known before any call: everything except the
     # earlier findings that chained mode adds.
     def planned_requests(input, mode:, passes: PASS_ORDER)
-      validate!(input, mode)
+      validate!(input, mode, passes)
       case mode
-      when "independent", "chained" then ordered(passes).map { |key| [request(key, input), 1] }
+      when "independent"
+        keys = ordered(passes) + (passes.include?(BRIEF) ? [BRIEF] : [])
+        keys.map { |key| [request(key, input), 1] }
+      when "chained" then ordered(passes).map { |key| [request(key, input), 1] }
       when "single" then [[request("combined", input), 1]]
       when "single_sampled" then (1..samples).map { |n| [request("combined", input), n] }
       end
@@ -47,8 +56,9 @@ module ThreePassReview
 
     private
 
-    def validate!(input, mode)
+    def validate!(input, mode, passes)
       raise ArgumentError, "unknown mode #{mode}" unless MODES.include?(mode)
+      raise ArgumentError, "the brief runs only in independent mode" if passes.include?(BRIEF) && mode != "independent"
       raise ArgumentError, "the base input must be deep-frozen" unless ThreePassReview.deep_frozen?(input)
     end
 
@@ -84,12 +94,19 @@ module ThreePassReview
 
     def call(request, sample)
       response = @client.complete(request)
-      findings = response.data.is_a?(Hash) ? response.data["findings"] : nil
-      error = response.error || (findings.is_a?(Array) ? nil : "reply had no findings list")
+      data = response.data.is_a?(Hash) ? response.data : nil
+      brief = request.pass == BRIEF
+      findings = brief ? [] : data&.dig("findings")
+      error = response.error ||
+        if brief
+          data ? nil : "reply was not an object"
+        else
+          findings.is_a?(Array) ? nil : "reply had no findings list"
+        end
       ThreePassReview.deep_freeze(PassResult.new(
         pass: request.pass, sample: sample, findings: error ? [] : findings,
         input_tokens: response.input_tokens, output_tokens: response.output_tokens,
-        stop_reason: response.stop_reason, error: error
+        stop_reason: response.stop_reason, error: error, data: (brief && !error) ? data : nil
       ))
     rescue => e
       PassResult.new(pass: request.pass, sample: sample, findings: [].freeze, input_tokens: 0, output_tokens: 0,

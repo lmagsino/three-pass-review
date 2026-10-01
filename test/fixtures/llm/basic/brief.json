@@ -1,0 +1,24 @@
+{
+  "summary": "Adds sorting to the invoice list: Invoice.sorted orders invoices by a column named in the request. It also subtracts customer credit in total_due and counts an invoice as overdue on its due date.",
+  "changes": [
+    {"area": "app/models", "description": "New Invoice.sorted(params) and a SORTABLE list; total_due now subtracts credit; overdue? now includes the due date."}
+  ],
+  "impact": [
+    {"kind": "api_contract", "description": "New public class method Invoice.sorted(params)."},
+    {"kind": "behavior", "description": "total_due is lower for customers with credit; invoices count as overdue one day earlier."}
+  ],
+  "risks": [
+    "The sort column comes straight from the request.",
+    "Invoices without a customer may now fail in total_due."
+  ],
+  "rollback": "A plain revert undoes it: no migration or stored data changes are visible in the diff.",
+  "tests_covered": [],
+  "test_gaps": ["No tests for sorting, credit or the overdue boundary are visible in the diff."],
+  "review_order": [
+    {"file": "app/models/invoice.rb", "line_start": 7, "line_end": 9, "why": "Request input reaches the SQL ORDER BY."},
+    {"file": "app/models/invoice.rb", "line_start": 100, "line_end": 100, "why": "The overdue boundary changed from < to <=."},
+    {"file": "app/models/user.rb", "line_start": 1, "line_end": 1, "why": "Not in the diff; should be dropped."}
+  ],
+  "questions": ["Which columns should be sortable?", "Is counting the due date as overdue intended?"],
+  "usage": {"input_tokens": 2100, "output_tokens": 650}
+}

@@ -67,6 +67,7 @@ module ThreePassReview
         o.on("--format FORMAT", %w[markdown json], "markdown (default) or json") { |v| opts[:format] = v }
         o.on("--mode MODE", Runner::MODES, "independent (default); the others exist for the eval") { |v| opts[:mode] = v }
         o.on("--fail-on SEVERITY", Finding::SEVERITIES, "Exit 2 if any finding is at least this severe") { |v| opts[:fail_on] = v }
+        o.on("--brief", "Add a reviewer brief for people: the change at a high level, risks, where to look first") { opts[:brief] = true }
         o.on("--no-cost-ceiling", "Run even without pricing; spend is not capped") { opts[:no_ceiling] = true }
       end
     end
@@ -87,7 +88,7 @@ module ThreePassReview
       diff_text = (opts[:diff] == "-") ? @stdin.read : File.read(opts[:diff])
       body = opts[:body_file] ? File.read(opts[:body_file]) : nil
       outcome = Review.new(config: config, client: client, repo: opts[:repo], enforce_ceiling: !opts[:no_ceiling])
-        .run(diff_text: diff_text, title: opts[:title], body: body, mode: opts[:mode])
+        .run(diff_text: diff_text, title: opts[:title], body: body, mode: opts[:mode], brief: opts[:brief])
 
       formatter = (@format == "json") ? Formatters::JSON : Formatters::Markdown
       @stdout.write(formatter.new(outcome).render)

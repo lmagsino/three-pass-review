@@ -9,6 +9,8 @@ confidence_threshold: 0.6
 max_comments: 10
 merge_line_gap: 3
 samples: 3                        # calls made in single_sampled mode
+brief:
+  enabled: false                  # a reviewer brief for people, on top of the findings (--brief turns it on)
 passes:
   correctness:  { enabled: true }
   security:     { enabled: true }

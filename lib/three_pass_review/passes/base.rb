@@ -91,10 +91,26 @@ module ThreePassReview
       define "combined", categories: Finding::CATEGORIES, conventions: true
     end
 
+    # The reviewer brief: orientation for the people doing a deep review. It
+    # reads the same frozen input as the checks, with its own prompt and
+    # schema, and reports no findings.
+    class Brief < Base
+      define "brief", categories: nil, conventions: true
+
+      def system_prompt
+        Prompts.read("brief")
+      end
+
+      def build_request(input, **)
+        super.with(schema: ThreePassReview::Brief.schema)
+      end
+    end
+
     SPECIALIZED = {"correctness" => Correctness, "security" => Security, "architecture" => Architecture}.freeze
 
     def self.fetch(key)
       return Combined.new if key.to_s == "combined"
+      return Brief.new if key.to_s == "brief"
 
       SPECIALIZED.fetch(key.to_s).new
     end

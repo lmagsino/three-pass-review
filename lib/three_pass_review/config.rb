@@ -50,6 +50,7 @@ module ThreePassReview
     def max_excerpt_bytes = data.dig("context", "max_excerpt_bytes")
     def max_conventions_bytes = data.dig("context", "max_conventions_bytes")
     def conventions = data.dig("passes", "architecture", "conventions")
+    def brief_enabled? = data.dig("brief", "enabled") == true
 
     def enabled_passes
       Runner::PASS_ORDER.select { |name| data.dig("passes", name, "enabled") }
@@ -104,6 +105,7 @@ module ThreePassReview
       unknown = data["passes"].keys - Runner::PASS_ORDER
       problems << "unknown passes: #{unknown.join(", ")}" if unknown.any?
       problems << "at least one pass must be enabled" if enabled_passes.empty?
+      problems << "brief.enabled must be true or false" unless [true, false].include?(data.dig("brief", "enabled"))
       data["passes"].each do |name, pass|
         problems << "passes.#{name}.enabled must be true or false" unless [true, false].include?(pass["enabled"])
       end

@@ -128,4 +128,32 @@ class RunnerTest < Minitest::Test
     assert_includes client.requests.first.user, "Excerpts were left out"
     refute_includes client.requests.first.user, "file_excerpts"
   end
+
+  def test_the_brief_runs_alongside_the_checks_in_independent_mode
+    client = ThreePassReview::LLM::FakeClient.new(BASIC)
+    result = runner(client).run(base_input, passes: %w[correctness security architecture brief])
+    brief = result.pass_results.find { |r| r.pass == "brief" }
+
+    assert_equal %w[architecture brief correctness security], client.requests.map(&:pass).sort
+    assert brief.ok?
+    assert_empty brief.findings
+    assert_match(/Adds sorting/, brief.data["summary"])
+    assert_equal ThreePassReview::Brief.schema, client.requests.find { |r| r.pass == "brief" }.schema
+  end
+
+  def test_the_brief_is_only_for_independent_mode
+    client = ThreePassReview::LLM::FakeClient.new(BASIC)
+
+    %w[chained single single_sampled].each do |mode|
+      assert_raises(ArgumentError) { runner(client).run(base_input, mode: mode, passes: %w[security brief]) }
+    end
+  end
+
+  def test_a_brief_that_is_not_an_object_is_an_error
+    client = ThreePassReview::LLM::FakeClient.new(nil, responses: {"brief" => {"error" => "cut off"}})
+    result = runner(client).run(base_input, passes: %w[brief])
+
+    assert_equal "cut off", result.pass_results.first.error
+    assert_nil result.pass_results.first.data
+  end
 end

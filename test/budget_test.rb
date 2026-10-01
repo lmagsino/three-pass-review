@@ -185,4 +185,16 @@ class BudgetTest < Minitest::Test
     assert_equal [1_000, 200], [acct.input_tokens, acct.output_tokens]
     assert_equal :usage, acct.calls.first.counted_by
   end
+
+  def test_the_brief_is_dropped_after_the_architecture_pass
+    with_brief = ThreePassReview::Runner::PASS_ORDER + ["brief"]
+    b = budget
+    bare = builder.build(diff: fixture_diff, title: "t", body: "b", lines_around_hunk: nil)
+    no_arch = b.estimate(runner, bare, mode: "independent", passes: with_brief - ["architecture"]).total_usd
+    no_brief = b.estimate(runner, bare, mode: "independent", passes: with_brief - %w[architecture brief]).total_usd
+    p = plan(budget(max: (no_arch + no_brief) / 2), passes: with_brief)
+
+    assert_equal %w[smaller_excerpts diff_only skipped_architecture skipped_brief], p.degradations
+    assert_equal %w[correctness security], p.passes
+  end
 end
