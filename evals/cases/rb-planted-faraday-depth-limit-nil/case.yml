@@ -1,0 +1,51 @@
+# Provenance checked 2026-10-01 against the GitHub API: license, PR and merge commit. One bug planted; see notes.
+id: rb-planted-faraday-depth-limit-nil
+kind: planted
+language: ruby
+source:
+  repo: https://github.com/lostisland/faraday
+  license: MIT
+  pr: https://github.com/lostisland/faraday/pull/1681
+  introduced_by: dd10c0d8a53ba2eeb6613b45bf05509c1088059c
+  merged_at: '2026-06-23'
+pr:
+  title: 'Backport GHSA-98m9-hrrm-r99r fix to 1.x: add param_depth_limit to NestedParamsEncoder'
+  body: |
+    The 1.x branch is equally affected by the DoS vulnerability in `NestedParamsEncoder` where arbitrarily deep nested query parameters could be used to exhaust resources. This backports the fix from `36764bfc`.
+
+    ### Changes
+
+    - **`NestedParamsEncoder`**: adds `param_depth_limit` accessor (default: `100`); raises `Faraday::Error` when exceeded, can be disabled with `nil`
+    - **`DecodeMethods#decode_pair`**: validates depth via `validate_params_depth!` before processing subkeys
+    - **Tests**: depth limit enforcement, within-limit, and disabled-limit cases for both the encoder and `Connection#build_url`
+
+    ```ruby
+    # Default: raises after 100 levels of nesting
+    Faraday::NestedParamsEncoder.decode('a' + '[b]' * 101 + '=1')
+    # => Faraday::Error: exceeded nested parameter depth limit of 100
+
+    # Configurable
+    Faraday::NestedParamsEncoder.param_depth_limit = 5
+
+    # Disable entirely
+    Faraday::NestedParamsEncoder.param_depth_limit = nil
+    ```
+defects:
+- id: d1
+  file: lib/faraday/encoders/nested_params_encoder.rb
+  lines:
+  - 145
+  - 145
+  category: correctness
+  subcategory: nil_handling
+  severity: medium
+  description: param_depth_limit = nil is meant to disable the limit (the PR's own
+    spec does that), but the guard compares depth > nil, which raises ArgumentError
+    on every nested query once the limit is disabled.
+notes: 'Planted. The original PR (merged into the 1.x branch) has `return unless @param_depth_limit
+  && depth > @param_depth_limit` at line 145. The plant removes `@param_depth_limit
+  && `, in both diff.patch and context/. Nothing else was changed. The PR''s spec
+  ''allows disabling the nested params depth limit'' shows that nil is a supported
+  value.
+
+  '

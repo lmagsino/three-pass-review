@@ -1,0 +1,115 @@
+diff --git a/lib/faraday/encoders/nested_params_encoder.rb b/lib/faraday/encoders/nested_params_encoder.rb
+index 705cd3e50..a7abd9587 100644
+--- a/lib/faraday/encoders/nested_params_encoder.rb
++++ b/lib/faraday/encoders/nested_params_encoder.rb
+@@ -100,6 +100,8 @@ def decode(query)
+ 
+     def decode_pair(key, value, context)
+       subkeys = key.scan(SUBKEYS_REGEX)
++      validate_params_depth!(subkeys.length)
++
+       subkeys.each_with_index do |subkey, i|
+         is_array = subkey =~ /[\[\]]+\Z/
+         subkey = $` if is_array
+@@ -139,6 +141,12 @@ def add_to_context(is_array, context, value, subkey)
+       is_array ? context << value : context[subkey] = value
+     end
+ 
++    def validate_params_depth!(depth)
++      return unless depth > @param_depth_limit
++
++      raise Faraday::Error, "exceeded nested parameter depth limit of #{@param_depth_limit}"
++    end
++
+     # Internal: convert a nested hash with purely numeric keys into an array.
+     # FIXME: this is not compatible with Rack::Utils.parse_nested_query
+     # @!visibility private
+@@ -161,7 +169,7 @@ def dehash(hash, depth)
+   # for your requests.
+   module NestedParamsEncoder
+     class << self
+-      attr_accessor :sort_params
++      attr_accessor :sort_params, :param_depth_limit
+ 
+       extend Forwardable
+       def_delegators :'Faraday::Utils', :escape, :unescape
+@@ -169,6 +177,7 @@ class << self
+ 
+     # Useful default for OAuth and caching.
+     @sort_params = true
++    @param_depth_limit = 100
+ 
+     extend EncodeMethods
+     extend DecodeMethods
+diff --git a/spec/faraday/connection_spec.rb b/spec/faraday/connection_spec.rb
+index d5e213014..28964b69c 100644
+--- a/spec/faraday/connection_spec.rb
++++ b/spec/faraday/connection_spec.rb
+@@ -355,6 +355,19 @@
+       url = conn.build_url(nil, b: 2, c: 3)
+       expect(url.to_s).to eq('http://sushi.com/nigiri?a=1&b=2&c=3')
+     end
++
++    it 'raises a controlled error when URL query params exceed the nested depth limit' do
++      original_param_depth_limit = Faraday::NestedParamsEncoder.param_depth_limit
++      begin
++        Faraday::NestedParamsEncoder.param_depth_limit = 2
++        expect { conn.build_url('/nigiri?a[b][c]=1') }.to raise_error(
++          Faraday::Error,
++          'exceeded nested parameter depth limit of 2'
++        )
++      ensure
++        Faraday::NestedParamsEncoder.param_depth_limit = original_param_depth_limit
++      end
++    end
+   end
+ 
+   describe '#build_request' do
+diff --git a/spec/faraday/params_encoders/nested_spec.rb b/spec/faraday/params_encoders/nested_spec.rb
+index 98c372ef6..f86712fe9 100644
+--- a/spec/faraday/params_encoders/nested_spec.rb
++++ b/spec/faraday/params_encoders/nested_spec.rb
+@@ -5,6 +5,15 @@
+ RSpec.describe Faraday::NestedParamsEncoder do
+   it_behaves_like 'a params encoder'
+ 
++  around do |example|
++    original_param_depth_limit = described_class.param_depth_limit
++    begin
++      example.run
++    ensure
++      described_class.param_depth_limit = original_param_depth_limit
++    end
++  end
++
+   it 'decodes arrays' do
+     query    = 'a[1]=one&a[2]=two&a[3]=three'
+     expected = { 'a' => %w[one two three] }
+@@ -59,6 +68,27 @@
+     expect(subject.decode(query)).to eq(expected)
+   end
+ 
++  it 'allows nested params within the configured depth limit' do
++    described_class.param_depth_limit = 3
++
++    expect(subject.decode('a[b][c]=1')).to eq({ 'a' => { 'b' => { 'c' => '1' } } })
++  end
++
++  it 'raises a controlled error when nested params exceed the depth limit' do
++    described_class.param_depth_limit = 2
++
++    expect { subject.decode('a[b][c]=1') }.to raise_error(
++      Faraday::Error,
++      'exceeded nested parameter depth limit of 2'
++    )
++  end
++
++  it 'allows disabling the nested params depth limit' do
++    described_class.param_depth_limit = nil
++
++    expect(subject.decode('a[b][c][d]=1')).to eq({ 'a' => { 'b' => { 'c' => { 'd' => '1' } } } })
++  end
++
+   it 'encodes rack compat' do
+     params   = { a: [{ one: '1', two: '2' }, '3', ''] }
+     result   = Faraday::Utils.unescape(Faraday::NestedParamsEncoder.encode(params)).split('&')
