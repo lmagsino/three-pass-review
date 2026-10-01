@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Three-Pass Code Review</title>
-<meta name="description" content="How to review code when agents write most of it: Copilot on every push, a second AI agent running a five-axis review, and human deep review where the blast radius is.">
+<meta name="description" content="How to review code when agents write most of it: Copilot on every push, a light AI review on every PR, and on risky PRs an AI reviewer brief followed by a human deep review.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wdth,wght@75..100,400..700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -135,6 +135,7 @@
     .checks .check:nth-of-type(2) { animation-delay: 650ms; }
     .checks .check:nth-of-type(3) { animation-delay: 1050ms; }
     .checks .check:nth-of-type(4) { animation-delay: 1450ms; }
+    .checks .check:nth-of-type(5) { animation-delay: 1850ms; }
     @keyframes arrive { to { opacity: 1; transform: none; } }
   }
 
@@ -270,14 +271,14 @@
     <div class="wrap">
       <div>
         <h1><span>AI reads every line.</span><span>People own the risk.</span></h1>
-        <p class="lede">A guide and drop-in GitHub kit for reviewing code when agents write most of it. Two different AI reviewers check every PR. People spend their time only where a mistake would hurt.</p>
+        <p class="lede">A guide and drop-in GitHub kit for reviewing code when agents write most of it. Two different AI reviewers check every PR. Where a mistake would hurt, an AI brief prepares the deep review, and people spend their time on judgment.</p>
         <div class="actions">
           <a class="btn primary" href="../docs/01-why.md" data-repo="/blob/main/guide/docs/01-why.md">Read the guide</a>
           <a class="btn secondary" href="../docs/setup.md" data-repo="/blob/main/guide/docs/setup.md">Set it up in 30 minutes</a>
         </div>
       </div>
 
-      <div class="checks" role="img" aria-label="Example pull request: Copilot left 3 comments, the agent review escalated it to deep review because a removed method still has callers, and the merge gate is waiting for 2 approvals.">
+      <div class="checks" role="img" aria-label="Example pull request: Copilot left 3 comments, the light review escalated it to deep review because a removed method still has callers, the reviewer brief is posted, and the merge gate is waiting for 2 approvals.">
         <header>
           <strong>Replace dismiss() with requestChanges()</strong>
           <span>#482 · 9 files · <span class="path">+212 −61</span></span>
@@ -289,17 +290,22 @@
         </div>
         <div class="check">
           <i class="dot deep"></i>
-          <div><div class="who">Pass 2 · Agent review</div><div class="what">Critical: <span class="path">dismiss()</span> was removed but <span class="path">actions.ts:88</span> still calls it.</div></div>
+          <div><div class="who">Pass 2 · Light review</div><div class="what">Critical: <span class="path">dismiss()</span> was removed but <span class="path">actions.ts:88</span> still calls it.</div></div>
           <span class="pill deep">Escalated</span>
         </div>
         <div class="check">
           <i class="dot deep"></i>
-          <div><div class="who">Review tier</div><div class="what">Deep: escalated by the agent review. Owners: @acme/reviews</div></div>
+          <div><div class="who">Review tier</div><div class="what">Deep: escalated by the light review. Owners: @acme/reviews</div></div>
           <span class="pill deep">tier/deep</span>
         </div>
         <div class="check">
+          <i class="dot info"></i>
+          <div><div class="who">Pass 3 · Reviewer brief</div><div class="what">Removes <span class="path">dismiss()</span> for <span class="path">requestChanges()</span>; 1 caller left behind. Look first: <span class="path">actions.ts:88</span>.</div></div>
+          <span class="pill muted">Posted</span>
+        </div>
+        <div class="check">
           <i class="dot wait"></i>
-          <div><div class="who">Pass 3 · review-gate</div><div class="what">Deep review: 1 of 2 approvals on the latest commit.</div></div>
+          <div><div class="who">review-gate</div><div class="what">Deep review: 1 of 2 approvals on the latest commit.</div></div>
           <span class="pill wait">Waiting</span>
         </div>
       </div>
@@ -324,11 +330,11 @@
         </li>
         <li>
           <span class="n" aria-hidden="true">2</span>
-          <h3>Agent review</h3>
+          <h3>Light review</h3>
           <p class="meta">Every ready PR, every push · minutes</p>
-          <p>A different AI runs a five-axis review, using Addy Osmani's code-review skill, and reports only what it can prove.</p>
+          <p>A different AI reviews the whole change and reports only what it can prove. You pick the reviewer: Addy Osmani's code-review skill, or Claude Code's pr-review-toolkit.</p>
           <ul>
-            <li>Correctness, readability, architecture, security, performance</li>
+            <li>Correctness, security, architecture, tests</li>
             <li>Blast radius: who still calls what changed</li>
             <li>Can only escalate, never approve</li>
           </ul>
@@ -336,16 +342,16 @@
         <li>
           <span class="n" aria-hidden="true">3</span>
           <h3>Deep review</h3>
-          <p class="meta">Only high blast radius · 30–60 minutes</p>
-          <p>The code owner and a second reviewer spend their time where it pays.</p>
+          <p class="meta">Only high blast radius · brief in minutes, people 30–60</p>
+          <p>An AI reviewer brief does the reading; the code owner and a second reviewer spend their time on judgment.</p>
           <ul>
-            <li>Verify the tests would catch a regression</li>
-            <li>Check constraints and every changed contract</li>
-            <li>Make sure it can be rolled back</li>
+            <li>Brief: the change at a high level, a change map, risks, rollback, where to look first</li>
+            <li>People: verify the tests and every changed contract</li>
+            <li>People: make sure it can be rolled back, then sign off</li>
           </ul>
         </li>
       </ol>
-      <p class="note">Light PRs still get a human approval: a 5-minute check after both AI reviews are clean. The <code>review-gate</code> status won't pass until the agent review is clean on the latest commit.</p>
+      <p class="note">Light PRs still get a human approval: a 5-minute check after both AI reviews are clean. The <code>review-gate</code> status won't pass until the light review is clean on the latest commit.</p>
     </div>
   </section>
 
@@ -366,12 +372,12 @@
             <label><input type="checkbox" id="fork"> From a fork</label>
             <label><input type="checkbox" id="first"> First-time contributor</label>
             <label><input type="checkbox" id="escalate"> <code>escalate/deep</code> label</label>
-            <label><input type="checkbox" id="skip"> <code>skip-agent-review</code> label</label>
+            <label><input type="checkbox" id="skip"> <code>skip-light-review</code> label</label>
           </div>
 
           <div class="row">
             <div>
-              <label class="field" for="agent">Agent review on latest commit</label>
+              <label class="field" for="agent">Light review on latest commit</label>
               <select id="agent">
                 <option value="clean">Clean</option>
                 <option value="escalated">Found a Critical issue</option>
@@ -433,10 +439,12 @@ gh secret set ANTHROPIC_API_KEY -R org/repo</pre>
   workflows/
     review-tier.yml        <span class="c">tier + review-gate</span>
     review-submitted.yml   <span class="c">re-checks on approval</span>
-    agent-review.yml       <span class="c">pass 2</span>
+    light-review.yml       <span class="c">pass 2</span>
+    deep-review.yml        <span class="c">pass 3: reviewer brief</span>
   scripts/                 <span class="c">tier rules, poster</span>
 .claude/review/
-  agent-review.md          <span class="c">pass 2 instructions</span>
+  light-review.md          <span class="c">pass 2 protocol</span>
+  methods/                 <span class="c">addy or pr-review-toolkit</span>
   skills/code-review-and-quality/
                            <span class="c">review skill, pinned</span></pre>
       </div>
@@ -446,7 +454,7 @@ gh secret set ANTHROPIC_API_KEY -R org/repo</pre>
 
 <footer>
   <div class="wrap">
-    <p>Pass 2 uses Addy Osmani's MIT-licensed <a href="https://github.com/addyosmani/agent-skills/tree/main/skills/code-review-and-quality">code-review-and-quality</a> skill. Pass 2 runs on <a href="https://github.com/anthropics/claude-code-action">claude-code-action</a>; pass 1 is <a href="https://docs.github.com/en/copilot/how-tos/use-copilot-agents/request-a-code-review/use-code-review">GitHub Copilot code review</a>.</p>
+    <p>Pass 2 uses Addy Osmani's MIT-licensed <a href="https://github.com/addyosmani/agent-skills/tree/main/skills/code-review-and-quality">code-review-and-quality</a> skill or Claude Code's <a href="https://github.com/anthropics/claude-code/tree/main/plugins/pr-review-toolkit">pr-review-toolkit</a>, and runs on <a href="https://github.com/anthropics/claude-code-action">claude-code-action</a>. Pass 3's brief comes from <a href="https://github.com/lmagsino/three-pass-review">threepass</a>. Pass 1 is <a href="https://docs.github.com/en/copilot/how-tos/use-copilot-agents/request-a-code-review/use-code-review">GitHub Copilot code review</a>.</p>
     <p>Not affiliated with or endorsed by Addy Osmani, GitHub or Anthropic. MIT licensed.</p>
   </div>
 </footer>
@@ -544,8 +552,8 @@ gh secret set ANTHROPIC_API_KEY -R org/repo</pre>
     const list = (a) => a.slice(0, 3).join(', ') + (a.length > 3 ? ` and ${a.length - 3} more` : '');
 
     if (ctx.escalate) reasons.push('Escalated with the escalate/deep label. Only a maintainer can remove it.');
-    if (ctx.skip) reasons.push('Has skip-agent-review. Light review needs a clean agent review.');
-    if (ctx.fork) reasons.push('Comes from a fork. The agent review doesn\'t run on forks.');
+    if (ctx.skip) reasons.push('Has skip-light-review. The light tier needs a clean light review.');
+    if (ctx.fork) reasons.push('Comes from a fork. The light review doesn\'t run on forks.');
     const mach = touching(POLICY.machinery);
     if (mach.length) reasons.push(`Changes the review setup itself: ${list(mach)}.`);
     for (const s of POLICY.sensitive) {
@@ -659,13 +667,13 @@ gh secret set ANTHROPIC_API_KEY -R org/repo</pre>
       pass = true;
       title = 'review-gate passes';
       text = approvals >= 1
-        ? 'The agent review is clean on this commit, and someone approved after the 5-minute light check. Ready to merge.'
-        : 'The agent review is clean on this commit. It still needs one approval after the 5-minute light check.';
+        ? 'The light review is clean on this commit, and someone approved after the 5-minute check. Ready to merge.'
+        : 'The light review is clean on this commit. It still needs one approval after the 5-minute check.';
     } else {
       pass = false;
       title = 'review-gate is waiting';
-      text = agent === 'failed' ? 'The agent review didn\'t finish on this commit. Re-run it, or escalate.'
-                                : 'Waiting for a clean agent review of the latest commit.';
+      text = agent === 'failed' ? 'The light review didn\'t finish on this commit. Re-run it, or escalate.'
+                                : 'Waiting for a clean light review of the latest commit.';
     }
     $('gate').className = `gate ${pass ? 'pass' : 'wait'}`;
     $('gate-dot').className = `dot ${pass ? 'ok' : 'wait'}`;
