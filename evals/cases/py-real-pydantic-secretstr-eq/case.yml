@@ -1,0 +1,53 @@
+# Provenance checked 2026-10-01 against the GitHub API: license, PR, merge commit and fix PR.
+id: py-real-pydantic-secretstr-eq
+kind: real
+language: python
+source:
+  repo: https://github.com/pydantic/pydantic
+  license: MIT
+  pr: https://github.com/pydantic/pydantic/pull/13518
+  introduced_by: d0ffa0951e47fd7349032e4b2ea9a54dc28fd435
+  fixed_by: 35b8d94c1435a3e78fc919cfdb439a1ef85a8d6f
+  fix_pr: https://github.com/pydantic/pydantic/pull/13537
+  merged_at: '2026-07-29'
+pr:
+  title: Use constant-time comparison for `SecretStr` and `SecretBytes` types
+  body: |
+    <!-- Thank you for your contribution! -->
+    <!-- Unless your change is trivial, please create an issue to discuss the change before creating a PR -->
+
+    ## Change Summary
+
+    Replaces https://github.com/pydantic/pydantic/pull/13497.
+
+    <!-- Please give a short summary of the changes. -->
+
+    ## Related issue number
+
+    <!-- WARNING: please use "fix #123" style references so the issue is closed when this PR is merged. -->
+
+    ## Checklist
+
+    * [ ] The pull request title is a good summary of the changes - it will be used in the changelog
+    * [ ] Unit tests for the changes exist
+    * [ ] Tests pass on CI
+    * [ ] Documentation reflects the changes where applicable
+    * [ ] My PR is ready to review, **please add a comment including the phrase "please review" to assign reviewers**
+defects:
+- id: d1
+  file: pydantic/types.py
+  lines:
+  - 1891
+  - 1891
+  category: correctness
+  subcategory: api_misuse
+  severity: medium
+  description: secrets.compare_digest only accepts ASCII str, so SecretStr('café')
+    == SecretStr('café') raises TypeError instead of returning True. SecretBytes is
+    unaffected.
+notes: 'Fix PR #13537 says it fixes a regression from #13518 and changes exactly this
+  line (text identical, checked 2026-10-01). The TypeError was reproduced locally:
+  secrets.compare_digest(''café'', ''café'') raises "comparing strings with non-ASCII
+  characters is not supported".
+
+  '
