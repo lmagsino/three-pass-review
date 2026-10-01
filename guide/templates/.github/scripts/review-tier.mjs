@@ -381,7 +381,7 @@ export function renderComment(result, { approvalChecklistUrl, deepChecklistUrl, 
         (owners.length ? ' with sign-off from the code owners' : '') +
         (deepChecklistUrl ? ` ([deep review checklist](${deepChecklistUrl}))` : '') +
         '. The AI reviews still run; they feed the deep review, they don\'t replace it.' +
-        (deepAiReview ? ' Pass 3 also runs `threepass` on this PR and posts its report for the deep reviewers to start from.' : '')
+        (deepAiReview ? ' Pass 3 also posts a reviewer brief (the change at a high level, risks, where to look first, findings and a sign-off draft) for the deep reviewers to start from.' : '')
     );
     if (owners.length) lines.push('', `**Owners:** ${owners.join(' ')}`);
   } else {

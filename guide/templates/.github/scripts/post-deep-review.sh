@@ -21,7 +21,7 @@ if [ "$code" = 0 ] || [ "$code" = 3 ]; then
 else
   {
     echo "<!-- threepass -->"
-    echo "### Deep review (pass 3): didn't finish"
+    echo "### Review brief (pass 3): didn't finish"
     echo
     echo "\`threepass\` failed on commit ${HEAD_SHA:0:7} ([run log](${RUN_URL:-#})). The usual causes are a missing" \
       "\`ANTHROPIC_API_KEY\` secret, or no pricing for the model set in \`.threepass.yml\`. The deep reviewers can" \

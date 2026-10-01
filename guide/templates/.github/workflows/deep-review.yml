@@ -1,10 +1,18 @@
 # Pass 3: the deep review.
 #
-# On PRs the tier check routes deep, runs `threepass`: three independent AI
-# checks (correctness, security and data safety, architecture) that never see
-# each other's output, merged into one ranked comment, under a hard cost
-# ceiling. The report is where the code owner and the second reviewer start.
-# It never approves, never blocks, and never lowers a tier.
+# On PRs the tier check routes deep, posts a reviewer brief made by
+# `threepass --brief`, for the code owner and the second reviewer to start
+# from. It contains:
+# - the change in plain words
+# - a change map computed from the diff
+# - impact, risks, rollback and test gaps
+# - where to look first
+# - questions for the author
+# - the findings of three independent AI checks (correctness, security and
+#   data safety, architecture)
+# - a pre-filled sign-off draft
+# It runs under a hard cost ceiling. It never approves, never blocks, and
+# never lowers a tier.
 #
 # How it starts: the tier check (review-tier.yml) dispatches this workflow
 # once per head commit of a deep, same-repo, ready PR. Runs started by the
@@ -133,7 +141,7 @@ jobs:
           (cd .threepass-tool && bundle exec exe/threepass review \
             --diff "$RUNNER_TEMP/change.patch" --repo "$GITHUB_WORKSPACE/pr" \
             --title "$(cat "$RUNNER_TEMP/title.txt")" --body-file "$RUNNER_TEMP/body.md" \
-            --format markdown "${config[@]}") > "$RUNNER_TEMP/report.md" 2> "$RUNNER_TEMP/stderr.txt"
+            --format markdown --brief "${config[@]}") > "$RUNNER_TEMP/report.md" 2> "$RUNNER_TEMP/stderr.txt"
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
           cat "$RUNNER_TEMP/stderr.txt" >&2
 

@@ -247,6 +247,6 @@ test('pass 3 is dispatched once per head commit of a deep, same-repo, ready PR',
 
 test('the deep tier comment mentions pass 3 only when it is installed', () => {
   const deep = decide([f('src/auth/login.ts', 3)]);
-  assert.match(renderComment(deep, { deepAiReview: true }), /Pass 3 also runs `threepass`/);
-  assert.doesNotMatch(renderComment(deep, {}), /threepass/);
+  assert.match(renderComment(deep, { deepAiReview: true }), /Pass 3 also posts a reviewer brief/);
+  assert.doesNotMatch(renderComment(deep, {}), /reviewer brief/);
 });
