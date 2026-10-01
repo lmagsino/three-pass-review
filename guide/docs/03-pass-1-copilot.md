@@ -2,6 +2,10 @@
 
 **Job:** fast, broad, line-level feedback on every push, with fixes the author can apply in one click.
 
+<p align="center">
+  <img src="images/pass-1-auto-review.svg" alt="Pass 1, auto review: Copilot comments on a line of the diff where reviews.find can return null, with a suggested change applied in one click. It runs on every push, takes seconds to minutes, and can't approve, block or change the tier." width="100%">
+</p>
+
 Copilot is the first sensor. It's quick, it's already in the PR view, and its suggestions can be committed straight from the comment. It isn't the reviewer of record. By default it leaves a "Comment" review, not "Approve" or "Request changes", so it doesn't count toward required approvals.
 
 ## Turn it on

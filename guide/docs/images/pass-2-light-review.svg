@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620" role="img" aria-labelledby="t d">
+  <title id="t">Pass 2: light review</title>
+  <desc id="d">The team chooses the light reviewer in the review policy: Addy Osmani's code-review-and-quality skill, pinned, or Claude Code's pr-review-toolkit with specialist agents. The light reviewer runs on every ready pull request: it checks intent, tests, correctness and security, blast radius and rollback, and verifies every finding with evidence. It posts one summary. In the example it needs attention: dismiss() was removed but actions.ts line 88 still calls it, so it recommends deep. A clean review lets the PR take the light tier, with one approval in about five minutes. A Critical or Required finding adds the escalate/deep label and the PR goes to pass 3. The reviewer can read code, comment and escalate, but never approve, push, merge or lower a tier.</desc>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="inkfill" d="M0 0 L10 5 L0 10 z"/></marker>
+  </defs>
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre; }
+    .bg { fill: #f5f7f6; } .card { fill: #ffffff; stroke: #d8dee2; } .ink { fill: #17212b; } .muted { fill: #55626e; } .faint { fill: #6e7a85; }
+    .rule { stroke: #d8dee2; } .inkfill { fill: #17212b; } .inkline { stroke: #17212b; fill: none; stroke-width: 2; } .onink { fill: #ffffff; }
+    .g { fill: #1a7f4b; } .gbg { fill: #e5f3eb; } .gs { stroke: #1a7f4b; }
+    .v { fill: #5b34a3; } .vbg { fill: #eee8f8; } .vs { stroke: #5b34a3; }
+    .r { fill: #b42318; }
+    .pill { fill: none; stroke: #b9c2c9; } .pillon { fill: #17212b; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #121a21; } .card { fill: #19232c; stroke: #2b3843; } .ink { fill: #e7ecef; } .muted { fill: #9aa7b2; } .faint { fill: #85929e; }
+      .rule { stroke: #2b3843; } .inkfill { fill: #e7ecef; } .inkline { stroke: #e7ecef; } .onink { fill: #121a21; }
+      .g { fill: #4cc38a; } .gbg { fill: #173528; } .gs { stroke: #4cc38a; }
+      .v { fill: #b49af0; } .vbg { fill: #2d2547; } .vs { stroke: #b49af0; }
+      .r { fill: #f47067; }
+      .pill { stroke: #3d4c58; } .pillon { fill: #e7ecef; }
+    }
+  </style>
+
+  <rect class="bg" width="1200" height="620" rx="20"/>
+
+  <text class="ink" x="48" y="64" font-size="27" font-weight="700">Pass 2 · Light review</text>
+  <text class="muted" x="48" y="94" font-size="16">A second, different AI reviews the whole change, proves what it reports, and decides if the PR needs more.</text>
+
+  <rect class="pill" x="866" y="42" width="90" height="30" rx="15"/>
+  <text class="muted" x="911" y="62" font-size="13" text-anchor="middle">1 Auto</text>
+  <rect class="pillon" x="964" y="42" width="90" height="30" rx="15"/>
+  <text class="onink" x="1009" y="62" font-size="13" font-weight="700" text-anchor="middle">2 Light</text>
+  <rect class="pill" x="1062" y="42" width="90" height="30" rx="15"/>
+  <text class="muted" x="1107" y="62" font-size="13" text-anchor="middle">3 Deep</text>
+
+  <!-- the choice -->
+  <text class="faint" x="48" y="144" font-size="12" font-weight="700" letter-spacing="1">YOU CHOOSE THE REVIEWER</text>
+  <rect class="card" x="48" y="158" width="280" height="112" rx="12"/>
+  <text class="ink" x="70" y="190" font-size="16" font-weight="700">Addy Osmani's skill</text>
+  <text class="muted mono" x="70" y="214" font-size="13">code-review-and-quality</text>
+  <text class="muted" x="70" y="238" font-size="14">Five-axis review by one reviewer</text>
+  <text class="muted" x="70" y="258" font-size="14">Pinned version</text>
+  <text class="faint" x="188" y="296" font-size="14" font-style="italic" text-anchor="middle">or</text>
+  <rect class="card" x="48" y="312" width="280" height="112" rx="12"/>
+  <text class="ink" x="70" y="344" font-size="16" font-weight="700">Claude's pr-review-toolkit</text>
+  <text class="muted" x="70" y="368" font-size="14">Specialist agents: code, silent</text>
+  <text class="muted" x="70" y="388" font-size="14">failures, tests, types</text>
+  <text class="muted" x="70" y="412" font-size="14">Latest version from Anthropic</text>
+  <text class="faint mono" x="48" y="450" font-size="12">light_review.reviewer in review-policy.yml</text>
+
+  <path class="inkline" d="M328 214 H350 V291 H372" marker-end="url(#ah)"/>
+  <path class="inkline" d="M328 368 H350 V291"/>
+
+  <!-- the reviewer -->
+  <rect class="vbg vs" x="378" y="160" width="270" height="262" rx="12" stroke-width="2"/>
+  <text class="v" x="513" y="194" font-size="18" font-weight="700" text-anchor="middle">Light reviewer</text>
+  <text class="muted" x="513" y="216" font-size="13" text-anchor="middle">every ready PR · a few minutes</text>
+  <text class="ink" x="400" y="252" font-size="14"><tspan class="v" font-weight="700">1</tspan>  Intent: does it match the PR?</text>
+  <text class="ink" x="400" y="278" font-size="14"><tspan class="v" font-weight="700">2</tspan>  Tests first</text>
+  <text class="ink" x="400" y="304" font-size="14"><tspan class="v" font-weight="700">3</tspan>  Correctness and security</text>
+  <text class="ink" x="400" y="330" font-size="14"><tspan class="v" font-weight="700">4</tspan>  Blast radius: who calls it?</text>
+  <text class="ink" x="400" y="356" font-size="14"><tspan class="v" font-weight="700">5</tspan>  Can it be rolled back?</text>
+  <text class="v" x="513" y="398" font-size="13" font-style="italic" text-anchor="middle">Every finding is verified with evidence</text>
+
+  <path class="inkline" d="M648 260 H684" marker-end="url(#ah)"/>
+
+  <!-- its summary comment -->
+  <rect class="card" x="690" y="130" width="462" height="248" rx="12"/>
+  <text class="ink" x="712" y="160" font-size="14" font-weight="700">github-actions</text>
+  <text class="muted" x="820" y="160" font-size="14">Light review (pass 2)</text>
+  <line class="rule" x1="691" y1="176" x2="1151" y2="176"/>
+  <text class="ink" x="712" y="208" font-size="18" font-weight="700">Needs attention</text>
+  <rect class="r" x="712" y="226" width="12" height="12" rx="2"/>
+  <text class="ink" x="732" y="237" font-size="15"><tspan font-weight="700">Critical:</tspan> <tspan class="mono" font-size="14">dismiss()</tspan> was removed, but</text>
+  <text class="ink" x="732" y="259" font-size="15"><tspan class="mono" font-size="14">actions.ts:88</tspan> still calls it.</text>
+  <text class="muted" x="712" y="292" font-size="14">Blast radius: 1 caller not updated</text>
+  <text class="muted" x="712" y="316" font-size="14">Tests: the removal isn't covered</text>
+  <text class="ink" x="712" y="346" font-size="15" font-weight="700">Recommendation: deep</text>
+  <text class="faint" x="1130" y="346" font-size="12" text-anchor="end">+ an inline comment on actions.ts:88</text>
+
+  <!-- what happens next -->
+  <path class="inkline" d="M921 378 V398 H801 V418" marker-end="url(#ah)"/>
+  <path class="inkline" d="M921 398 H1041 V418" marker-end="url(#ah)"/>
+  <rect class="gbg gs" x="690" y="424" width="222" height="124" rx="12" stroke-width="2"/>
+  <text class="g" x="801" y="456" font-size="17" font-weight="700" text-anchor="middle">Clean</text>
+  <text class="ink" x="801" y="484" font-size="14" text-anchor="middle">Light tier: one approval,</text>
+  <text class="ink" x="801" y="504" font-size="14" text-anchor="middle">about 5 minutes</text>
+  <text class="muted" x="801" y="530" font-size="13" text-anchor="middle">Gate passes on this commit</text>
+  <rect class="vbg vs" x="930" y="424" width="222" height="124" rx="12" stroke-width="2"/>
+  <text class="v" x="1041" y="456" font-size="17" font-weight="700" text-anchor="middle">Critical or Required</text>
+  <text class="ink" x="1041" y="484" font-size="14" text-anchor="middle">Adds <tspan class="mono" font-size="13">escalate/deep</tspan></text>
+  <text class="ink" x="1041" y="504" font-size="14" text-anchor="middle">and the PR goes to pass 3</text>
+  <text class="muted" x="1041" y="530" font-size="13" text-anchor="middle">This example goes here</text>
+
+  <!-- the rules it plays by -->
+  <text class="faint" x="48" y="496" font-size="12" font-weight="700" letter-spacing="1">CAN</text>
+  <text class="ink" x="48" y="518" font-size="15">Read code, comment, escalate</text>
+  <text class="faint" x="48" y="548" font-size="12" font-weight="700" letter-spacing="1">CAN'T</text>
+  <text class="ink" x="48" y="570" font-size="15">Approve, push, merge, or lower a tier</text>
+  <text class="faint" x="378" y="496" font-size="12" font-weight="700" letter-spacing="1">INSTRUCTIONS</text>
+  <text class="ink" x="378" y="518" font-size="15">From the base branch, not the PR</text>
+  <text class="faint" x="378" y="548" font-size="12" font-weight="700" letter-spacing="1">SKIPS</text>
+  <text class="ink" x="378" y="570" font-size="15">Drafts, and forks (they go deep)</text>
+
+  <text class="faint" x="48" y="604" font-size="13">Same example: PR #482 “Replace dismiss() with requestChanges()”. Illustrative, not a real review.</text>
+</svg>

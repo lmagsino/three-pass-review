@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="610" viewBox="0 0 1200 610" role="img" aria-labelledby="t d">
+  <title id="t">Pass 1: auto review</title>
+  <desc id="d">An example pull request diff. GitHub Copilot comments on the line const author = review.author.name: reviews.find returns null for an unknown ID, so review.author throws instead of returning a 404. Its comment includes a suggested change that adds a not-found check, applied with one click. Pass 1 runs on every push, takes seconds to minutes, looks for line-level bugs, security slips and broken or weakened tests, and can't approve, block or change the tier.</desc>
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre; }
+    .bg { fill: #f5f7f6; } .card { fill: #ffffff; stroke: #d8dee2; } .ink { fill: #17212b; } .muted { fill: #55626e; } .faint { fill: #6e7a85; }
+    .rule { stroke: #d8dee2; } .inkfill { fill: #17212b; } .onink { fill: #ffffff; }
+    .g { fill: #1a7f4b; } .gbg { fill: #e5f3eb; }
+    .r { fill: #b42318; } .rbg { fill: #fdecea; }
+    .a { fill: #8a5a00; } .abg { fill: #fbf0d9; } .as { stroke: #c08a1e; }
+    .pill { fill: none; stroke: #b9c2c9; } .pillon { fill: #17212b; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #121a21; } .card { fill: #19232c; stroke: #2b3843; } .ink { fill: #e7ecef; } .muted { fill: #9aa7b2; } .faint { fill: #85929e; }
+      .rule { stroke: #2b3843; } .inkfill { fill: #e7ecef; } .onink { fill: #121a21; }
+      .g { fill: #4cc38a; } .gbg { fill: #173528; }
+      .r { fill: #f47067; } .rbg { fill: #3d1f1f; }
+      .a { fill: #e2b04a; } .abg { fill: #3a2f17; } .as { stroke: #e2b04a; }
+      .pill { stroke: #3d4c58; } .pillon { fill: #e7ecef; }
+    }
+  </style>
+
+  <rect class="bg" width="1200" height="610" rx="20"/>
+
+  <text class="ink" x="48" y="64" font-size="27" font-weight="700">Pass 1 · Auto review</text>
+  <text class="muted" x="48" y="94" font-size="16">Copilot reads every line on every push, and leaves fixes you can apply in one click.</text>
+
+  <!-- where we are -->
+  <rect class="pillon" x="866" y="42" width="90" height="30" rx="15"/>
+  <text class="onink" x="911" y="62" font-size="13" font-weight="700" text-anchor="middle">1 Auto</text>
+  <rect class="pill" x="964" y="42" width="90" height="30" rx="15"/>
+  <text class="muted" x="1009" y="62" font-size="13" text-anchor="middle">2 Light</text>
+  <rect class="pill" x="1062" y="42" width="90" height="30" rx="15"/>
+  <text class="muted" x="1107" y="62" font-size="13" text-anchor="middle">3 Deep</text>
+
+  <!-- the diff -->
+  <rect class="card" x="48" y="130" width="700" height="430" rx="12"/>
+  <text class="ink mono" x="72" y="158" font-size="14" font-weight="600">src/reviews/submit.ts</text>
+  <text class="g mono" x="672" y="158" font-size="14" text-anchor="end">+6</text>
+  <text class="r mono" x="724" y="158" font-size="14" text-anchor="end">−1</text>
+  <line class="rule" x1="49" y1="174" x2="747" y2="174"/>
+
+  <text class="faint mono" x="72" y="200" font-size="13">41</text>
+  <text class="ink mono" x="128" y="200" font-size="14">export async function submitReview(id: string) {</text>
+
+  <rect class="gbg" x="49" y="209" width="698" height="26"/>
+  <text class="faint mono" x="72" y="228" font-size="13">42</text>
+  <text class="g mono" x="110" y="228" font-size="14">+</text>
+  <text class="ink mono" x="128" y="228" font-size="14">  const review = await reviews.find(id)</text>
+
+  <rect class="abg" x="49" y="237" width="698" height="26"/>
+  <text class="faint mono" x="72" y="256" font-size="13">43</text>
+  <text class="g mono" x="110" y="256" font-size="14">+</text>
+  <text class="ink mono" x="128" y="256" font-size="14">  const author = review.author.name</text>
+
+  <!-- Copilot's comment on line 43 -->
+  <rect class="card as" x="72" y="272" width="652" height="208" rx="10" stroke-width="1.5"/>
+  <circle class="inkfill" cx="98" cy="298" r="12"/>
+  <text class="onink" x="98" y="303" font-size="12" font-weight="700" text-anchor="middle">AI</text>
+  <text class="ink" x="120" y="303" font-size="15" font-weight="700">Copilot</text>
+  <text class="muted" x="184" y="303" font-size="14">commented on line 43</text>
+  <text class="ink" x="96" y="334" font-size="15"><tspan class="mono" font-size="14">reviews.find</tspan> returns null for an unknown ID, so <tspan class="mono" font-size="14">review.author</tspan></text>
+  <text class="ink" x="96" y="356" font-size="15">throws instead of returning a 404.</text>
+  <rect class="rbg" x="96" y="370" width="604" height="22"/>
+  <text class="r mono" x="104" y="386" font-size="13">-  const author = review.author.name</text>
+  <rect class="gbg" x="96" y="392" width="604" height="22"/>
+  <text class="g mono" x="104" y="408" font-size="13">+  if (!review) throw new NotFoundError(id)</text>
+  <rect class="gbg" x="96" y="414" width="604" height="22"/>
+  <text class="g mono" x="104" y="430" font-size="13">+  const author = review.author.name</text>
+  <rect class="inkfill" x="96" y="444" width="158" height="26" rx="6"/>
+  <text class="onink" x="175" y="462" font-size="13" font-weight="600" text-anchor="middle">Commit suggestion</text>
+
+  <rect class="gbg" x="49" y="489" width="698" height="26"/>
+  <text class="faint mono" x="72" y="508" font-size="13">44</text>
+  <text class="g mono" x="110" y="508" font-size="14">+</text>
+  <text class="ink mono" x="128" y="508" font-size="14">  await notify(author, review.state)</text>
+  <text class="faint mono" x="72" y="536" font-size="13">45</text>
+  <text class="ink mono" x="128" y="536" font-size="14">  return review</text>
+
+  <!-- what you get -->
+  <text class="ink" x="792" y="152" font-size="17" font-weight="700">What pass 1 gives you</text>
+  <text class="faint" x="792" y="192" font-size="12" font-weight="700" letter-spacing="1">RUNS</text>
+  <text class="ink" x="792" y="214" font-size="16">On every push to every pull request</text>
+  <text class="faint" x="792" y="256" font-size="12" font-weight="700" letter-spacing="1">TAKES</text>
+  <text class="ink" x="792" y="278" font-size="16">Seconds to a few minutes</text>
+  <text class="faint" x="792" y="320" font-size="12" font-weight="700" letter-spacing="1">LOOKS FOR</text>
+  <text class="ink" x="792" y="342" font-size="16">Line-level bugs, security slips,</text>
+  <text class="ink" x="792" y="364" font-size="16">broken or weakened tests</text>
+  <text class="faint" x="792" y="406" font-size="12" font-weight="700" letter-spacing="1">GIVES</text>
+  <text class="ink" x="792" y="428" font-size="16">Line comments with one-click fixes</text>
+  <text class="faint" x="792" y="470" font-size="12" font-weight="700" letter-spacing="1">CAN'T</text>
+  <text class="ink" x="792" y="492" font-size="16">Approve, block, or change the tier</text>
+  <text class="faint" x="792" y="534" font-size="12" font-weight="700" letter-spacing="1">SET UP</text>
+  <text class="ink" x="792" y="556" font-size="16">Turn on automatic Copilot review</text>
+
+  <text class="faint" x="48" y="592" font-size="13">Example: PR #482 “Replace dismiss() with requestChanges()”. Illustrative, not a real review.</text>
+</svg>

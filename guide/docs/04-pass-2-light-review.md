@@ -2,6 +2,10 @@
 
 **Job:** a structured review by a second, different AI, on every ready PR. It finds and verifies issues, ranks them, measures blast radius, and tells the human reviewer where to look. It also recommends a tier, but only upward.
 
+<p align="center">
+  <img src="images/pass-2-light-review.svg" alt="Pass 2, light review: the team picks Addy Osmani's skill or Claude Code's pr-review-toolkit. The light reviewer checks intent, tests, correctness and security, blast radius and rollback, and posts one verified summary. Clean means one approval; a Critical or Required finding escalates the PR to pass 3." width="100%">
+</p>
+
 You choose the reviewer with `light_review.reviewer` in `.github/review-policy.yml` (see [choosing the reviewer](#choosing-the-reviewer)):
 
 | `reviewer` | What runs |

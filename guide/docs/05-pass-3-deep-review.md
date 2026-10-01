@@ -2,6 +2,10 @@
 
 **Job:** a code owner decides whether a high-blast-radius change is safe to ship, and makes sure someone on the team understands it.
 
+<p align="center">
+  <img src="images/pass-3-deep-review.svg" alt="Pass 3, deep review: for deep-tier PRs, the AI builds a change map, a brief and three independent checks into one reviewer brief. Then the code owner and a second reviewer start from it, verify the tests, check contracts, confirm rollback and sign off; review-gate needs two approvals." width="100%">
+</p>
+
 Pass 3 has two parts:
 1. **An automated reviewer brief**, posted as soon as a PR is routed deep. It does the reading and organizing.
 2. **The human deep review**, which starts from the brief and spends its time on judgment: verification, constraints and recoverability, on the changes where a mistake would really hurt.
