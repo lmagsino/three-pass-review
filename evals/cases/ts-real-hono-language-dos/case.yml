@@ -1,0 +1,107 @@
+# Provenance checked 2026-10-01 against the GitHub API: license, PR, merge commit, fix commit and advisory.
+id: ts-real-hono-language-dos
+kind: real
+language: typescript
+source:
+  repo: https://github.com/honojs/hono
+  license: MIT
+  pr: https://github.com/honojs/hono/pull/4717
+  introduced_by: 02346c6d945a10c98f54ae51622e8c7afbe3bad4
+  fixed_by: f70e2c31684387b3231cc38512a31df6ca76a1c7
+  merged_at: '2026-02-19'
+  advisory: https://github.com/advisories/GHSA-54fx-42gc-7vw4
+pr:
+  title: 'feat(language): add progressive locale code truncation to normalizeLanguage'
+  body: |
+    Closes #4294
+
+    ## Summary
+
+    - Add RFC 4647 Lookup-based progressive truncation to `normalizeLanguage` so that locale codes like `ja-JP` match `ja` when only the base language is in `supportedLanguages`
+    - Exact match is always checked first; truncation is only attempted when no exact match is found
+
+    ## Verification
+
+    ```ts
+    // verify.ts
+    import { Hono } from './src/hono'
+    import { languageDetector } from './src/middleware/language'
+
+    const app = new Hono()
+    app.use('/*', languageDetector({
+      supportedLanguages: ['en', 'ja'],
+      fallbackLanguage: 'en',
+      order: ['cookie', 'header'],
+    }))
+    app.get('/*', (c) => c.text(c.get('language')))
+
+    export default app
+    ```
+
+    ```sh
+    # Issue case: ja-JP → ja (was 'en' before this fix)
+    bunx @hono/cli request verify.ts -H "accept-language: ja-JP"
+    # => ja
+
+    # Exact match still works
+    bunx @hono/cli request verify.ts -H "accept-language: ja"
+    # => ja
+
+    # Unmatched locale falls back correctly
+    bunx @hono/cli request verify.ts -H "accept-language: ko-KR"
+    # => en
+    ```
+
+    ## Design considerations
+
+    ### Why progressive truncation, not leftmost-only comparison
+
+    Comparing only the primary (leftmost) subtag would cause incorrect matches for script-differentiated languages. For example, `zh-Hans` (Simplified Chinese) and `zh-Hant` (Traditional Chinese) share the primary subtag `zh` but are mutually unintelligible in written form. Progressive truncation per [RFC 4647 Section 3.4](https://www.rfc-editor.org/rfc/rfc4647.html#section-3.4) correctly tries `zh-Hant-CN` → `zh-Hant` → `zh` in order, so `zh-Hant` is matched before falling back to `zh`.
+
+    ### No guessing of invalid language codes
+
+    This change only applies truncation to subtags separated by `-`. Tags without subtags (e.g., `jp`, `de`) are unaffected — if they don't exactly match a supported language, the fallback is returned as before. This PR does not attempt to guess or correct invalid language codes (e.g., `jp` → `ja`). Such mappings can be handled via the existing `convertDetectedLanguage` option.
+
+    ### Loop style: `for` with early return
+
+    The same file's `detectLanguage` function (L244) uses `for...of` with `break` for early-exit iteration. The truncation loop follows this convention, using a `for` loop with early `return`. The only `let` is the loop counter `i`; all other variables are `const`.
+
+    ### Singleton subtag skipping (not implemented)
+
+    RFC 4647 Section 3.4 specifies that single-character subtags (`x` for private-use, `u` for Unicode extensions, etc.) should be removed together with their closest trailing subtag during truncation:
+
+    ```
+    zh-Hant-CN-x-private1-private2
+    zh-Hant-CN-x-private1
+    zh-Hant-CN                      ← skips 'zh-Hant-CN-x' (singleton 'x')
+    zh-Hant
+    zh
+    ```
+
+    This PR does **not** implement singleton skipping. In practice, singleton-ending tags like `en-x` or `de-DE-u` never appear in `supportedLanguages`, so they would simply be skipped as non-matching candidates without affecting the final result. Full singleton handling can be added in a follow-up if needed.
+
+    ## The author should do the following, if applicable
+
+    - [x] Add tests
+    - [x] Run tests
+    - [x] `bun run format:fix && bun run lint:fix` to format the code
+    - [ ] Add [TSDoc](https://tsdoc.org/)/[JSDoc](https://jsdoc.app/about-getting-started) to document the code
+defects:
+- id: d1
+  file: src/middleware/language/language.ts
+  lines:
+  - 110
+  - 117
+  category: security
+  subcategory: algorithmic_complexity_dos
+  severity: medium
+  description: The language tag comes from the request (query, cookie, header or path).
+    It is split on '-' and every prefix is rebuilt with slice+join, which is quadratic
+    in the number of subtags, so one crafted tag can block the event loop.
+notes: 'PR #4717 merged into the `next` branch (merge commit above). The fix is commit
+  f70e2c3 on main, a private security fix ("Merge commit from fork", 2026-08-03) for
+  GHSA-54fx-42gc-7vw4 / CVE-2026-71848 (medium; hono >=4.12.0 <4.12.34). The fix deletes
+  exactly the loop this PR added (text identical in both diffs, checked 2026-10-01).
+  Line numbers are from language.ts at the merge commit. The slowdown was not reproduced.
+
+  '
