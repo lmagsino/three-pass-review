@@ -1,0 +1,49 @@
+# Provenance checked 2026-10-01 against the GitHub API: license, PR and merge commit. One bug planted; see notes.
+id: ts-planted-hono-basic-auth-bypass
+kind: planted
+language: typescript
+source:
+  repo: https://github.com/honojs/hono
+  license: MIT
+  pr: https://github.com/honojs/hono/pull/4645
+  introduced_by: bf37828d6df56618bb90649c65c1c4deb2f9bcd6
+  merged_at: '2026-02-19'
+pr:
+  title: 'feat(basic-auth): add context key and callback options'
+  body: |
+    Close #4192
+
+    Add two new options to basicAuth middleware:
+    - `usernameContextKey`: stores authenticated username in context
+      - `true`: uses default key 'basicAuthUsername'
+      - `string`: uses custom key name
+    - `onAuthSuccess`: callback invoked after successful authentication
+
+    This allows route handlers to access the authenticated username without
+    re-parsing the Authorization header.
+
+    ### The author should do the following, if applicable
+
+    - [x] Add tests
+    - [x] Run tests
+    - [x] `bun run format:fix && bun run lint:fix` to format the code
+    - [x] Add [TSDoc](https://tsdoc.org/)/[JSDoc](https://jsdoc.app/about-getting-started) to document the code
+defects:
+- id: d1
+  file: src/middleware/basic-auth/index.ts
+  lines:
+  - 122
+  - 126
+  category: security
+  subcategory: missing_authn
+  severity: critical
+  description: When onAuthSuccess is configured, a request whose username matches
+    is let through (next() is called) without checking passwordEqual, so any password
+    works for a known username.
+notes: 'Planted. The original PR (merged into the `next` branch) calls onAuthSuccess
+  inside `if (usernameEqual && passwordEqual)`. The plant replaces that added block
+  with one before the check that runs on `usernameEqual` alone and calls next(). Edited
+  consistently in diff.patch (the second index.ts hunk grows from +9 to +11 new lines)
+  and context/. Nothing else was changed.
+
+  '
