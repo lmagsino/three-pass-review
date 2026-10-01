@@ -1,0 +1,28 @@
+# threepass defaults. A .threepass.yml in the reviewed repo overrides any key.
+
+# Checked against https://platform.claude.com/docs/en/about-claude/models/overview on 2026-10-01.
+model: claude-sonnet-5-5
+max_cost_usd: 0.50
+max_output_tokens: 4000           # per call; on current models this also bounds thinking tokens
+effort: medium                    # low | medium | high | xhigh | max, or null for the API default; tune with the eval
+confidence_threshold: 0.6
+max_comments: 10
+merge_line_gap: 3
+samples: 3                        # calls made in single_sampled mode
+passes:
+  correctness:  { enabled: true }
+  security:     { enabled: true }
+  architecture:
+    enabled: true
+    conventions: [CLAUDE.md, AGENTS.md, CONVENTIONS.md, .github/copilot-instructions.md]
+context:
+  lines_around_hunk: 30
+  reduced_lines_around_hunk: 5    # first degradation step under the cost ceiling
+  max_excerpt_bytes: 60000
+  max_conventions_bytes: 20000
+# USD per million tokens, base (uncached) rates on the Claude API.
+# Copied from https://platform.claude.com/docs/en/about-claude/pricing on 2026-10-01.
+pricing:
+  claude-sonnet-5-5: { input: 2.00, output: 10.00 }
+  claude-opus-5-5:   { input: 4.00, output: 20.00 }
+  claude-haiku-4-5:  { input: 1.00, output: 5.00 }

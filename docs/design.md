@@ -147,16 +147,18 @@ An optional LLM-based reconciler (semantic deduplication) can come later as an e
 
 `max_cost_usd` (default 0.50) is a hard ceiling per review.
 
-1. **Estimate before calling.** For each pass, estimate input tokens (use the API's token-counting endpoint if available, otherwise characters ÷ 3.5) and assume `max_output_tokens` for output. Price both with the configured per-model rates.
+1. **Estimate before calling.** For each pass, estimate input tokens (use the API's token-counting endpoint if available, otherwise characters ÷ 3.5) and assume `max_output_tokens` for output. On current models `max_tokens` also bounds thinking, so that's the most a call can be billed for. Price both with the configured per-model rates. In `chained` mode a later pass also receives the earlier passes' findings, so the estimate adds up to `max_output_tokens` for each earlier pass. Each chained call is checked again just before it's made, against what has actually been spent, and skipped if it would go over.
 2. **If the estimate is over the ceiling, degrade in a fixed order:**
-   1. Shrink excerpts to the hunks plus a smaller margin.
+   1. Shrink excerpts to the hunks plus a smaller margin (`context.reduced_lines_around_hunk`, default 5).
    2. Drop excerpts and send the diff only.
-   3. Skip the architecture pass.
+   3. Skip the architecture pass (`independent` and `chained` only; the single modes have one prompt, so they go straight to refusing).
    4. Refuse to run, exit with code 3, and say why.
 
    Every degradation is listed in the output.
 3. **Account after calling.** Compute actual cost from the token usage the API returns, per pass, and report it in both output formats.
-4. **Never exceed it.** A test runs the fake client with a tiny ceiling and asserts that the degradation order is followed and nothing goes over.
+4. **Never exceed it.** A test runs the fake client with a tiny ceiling and asserts that the degradation order is followed and nothing goes over. A refused review makes no API calls (token counting excepted).
+
+The ceiling is only as accurate as the input count. `count_tokens` is the API's own count. The characters ÷ 3.5 fallback is a heuristic, and it can undercount code. Actual cost is always computed from the usage the API reports, never from the estimate.
 
 Prices live in config (`pricing:` per model, dollars per million input and output tokens). **Don't hard-code prices from memory.** Take them from Anthropic's pricing page and note the date in the config comment.
 
@@ -197,7 +199,9 @@ Exit codes:
 ```yaml
 model: claude-sonnet-5-5          # verify current model IDs in Anthropic's docs
 max_cost_usd: 0.50
-max_output_tokens: 4000           # per pass
+max_output_tokens: 4000           # per pass; also bounds thinking tokens
+effort: medium                    # low | medium | high | xhigh | max, or null for the API default
+samples: 3                        # calls in single_sampled mode
 confidence_threshold: 0.6
 max_comments: 10
 merge_line_gap: 3
@@ -209,13 +213,18 @@ passes:
     conventions: [CLAUDE.md, AGENTS.md, CONVENTIONS.md, .github/copilot-instructions.md]
 context:
   lines_around_hunk: 30
+  reduced_lines_around_hunk: 5    # first degradation step
   max_excerpt_bytes: 60000
   max_conventions_bytes: 20000    # conventions files share this budget, in the order listed
 pricing:                          # USD per million tokens; copy from Anthropic's pricing page and date it
-  claude-sonnet-5-5: { input: null, output: null }
+  claude-sonnet-5-5: { input: 2.00, output: 10.00 }
 ```
 
+The built-in defaults live in `lib/three_pass_review/defaults.yml`, with the date each model ID and price was checked against Anthropic's docs. Unknown keys are an error, so a typo can't silently fall back to a default.
+
 If the pricing for the configured model is missing, the tool refuses to run unless `--no-cost-ceiling` is passed. A ceiling it can't calculate is not a ceiling.
+
+**Trust:** `.threepass.yml` is read from the checkout being reviewed, so a pull request can change it, including `max_cost_usd`. When reviewing changes you don't trust, pass `--config` pointing at a copy from a trusted branch.
 
 ## GitHub Action
 
@@ -247,6 +256,8 @@ lib/three_pass_review/
   diff.rb                             unified diff parser (files, hunks, new-line numbers)
   context_builder.rb                  excerpts, conventions files, frozen base input
   budget.rb                           estimate, ceiling, degradation, usage accounting
+  review.rb                           one review end to end: parse, plan under the ceiling, run, account
+  defaults.yml                        default config, with dated model IDs and prices
   llm/client.rb                       provider interface
   llm/anthropic_client.rb             Messages API + structured outputs for findings
   llm/fake_client.rb                  replays fixtures, records requests (tests and evals)

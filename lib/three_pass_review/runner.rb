@@ -36,9 +36,12 @@ module ThreePassReview
       end
     end
 
-    def run(input, mode: "independent", passes: PASS_ORDER)
+    # guard: optional callable(request, results_so_far) -> reason or nil, checked
+    # before each chained call. Independent calls are all covered by the
+    # estimate made before the run.
+    def run(input, mode: "independent", passes: PASS_ORDER, guard: nil)
       planned = planned_requests(input, mode: mode, passes: passes)
-      results = (mode == "chained") ? run_chained(input, passes) : run_parallel(planned)
+      results = (mode == "chained") ? run_chained(input, passes, guard) : run_parallel(planned)
       RunResult.new(mode: mode, model: model, pass_results: results.freeze)
     end
 
@@ -63,13 +66,20 @@ module ThreePassReview
       planned.map { |req, sample| Thread.new { call(req, sample) } }.map(&:value)
     end
 
-    def run_chained(input, passes)
+    def run_chained(input, passes, guard)
       prior = {}
-      ordered(passes).map do |key|
-        result = call(request(key, input, prior: prior.dup), 1)
-        prior[key] = result.findings
-        result
+      ordered(passes).each_with_object([]) do |key, results|
+        req = request(key, input, prior: prior.dup)
+        reason = guard&.call(req, results)
+        result = reason ? skipped(req, reason) : call(req, 1)
+        prior[key] = result.findings unless reason
+        results << result
       end
+    end
+
+    def skipped(request, reason)
+      PassResult.new(pass: request.pass, sample: 1, findings: [].freeze, input_tokens: 0, output_tokens: 0,
+        stop_reason: nil, error: reason.dup.freeze)
     end
 
     def call(request, sample)

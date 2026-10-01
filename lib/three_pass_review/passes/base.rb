@@ -46,7 +46,7 @@ module ThreePassReview
           conventions = input.conventions.map { |c| "#{c.path}#{" (truncated)" if c.truncated}\n#{c.text}" }
           blocks << ["conventions_files", conventions.empty? ? "(none found)" : conventions.join("\n\n")]
         end
-        prior.each { |pass, findings| blocks << ["earlier_findings_from_#{pass}", JSON.pretty_generate(findings)] }
+        prior.each { |pass, findings| blocks << ["earlier_findings_from_#{pass}", JSON.generate(findings)] }
 
         # The marker id hashes the content it wraps, so the content can't
         # contain a valid END marker of its own.
