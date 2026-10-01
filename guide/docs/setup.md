@@ -5,12 +5,26 @@ About 30 minutes for one repository. You need admin access to the repo, the GitH
 ## 1. Copy the kit into your repo
 
 ```bash
-git clone https://github.com/<you>/three-pass-review.git
+git clone https://github.com/lmagsino/three-pass-review.git
 cd your-repo && git switch -c three-pass-review
-bash ../three-pass-review/guide/scripts/install.sh .
+bash ../three-pass-review/guide/scripts/install.sh . --light-reviewer addy   # or pr-review-toolkit
 ```
 
-`install.sh` copies everything in [`templates/`](../templates) and vendors Addy Osmani's `code-review-and-quality` skill (used by pass 2) at a pinned commit. It never overwrites a file you already have, including a CODEOWNERS or PR template in another of GitHub's locations. It lists what it skipped so you can merge by hand.
+`install.sh` does four things:
+
+- **Copies everything in [`templates/`](../templates).** It never overwrites a file you already have, including a CODEOWNERS or PR template in another of GitHub's locations, and it lists what it skipped so you can merge by hand.
+- **Vendors Addy Osmani's `code-review-and-quality` skill** at a pinned commit.
+- **Sets the pass 2 reviewer** you picked.
+- **Pins pass 3's `threepass`** to the exact commit of the kit you ran it from.
+
+**Using it across projects.** Run the same command in each repository. When the kit improves, pull it and rerun with `--upgrade` in each project:
+
+```bash
+git -C ../three-pass-review pull
+bash ../three-pass-review/guide/scripts/install.sh . --upgrade
+```
+
+`--upgrade` refreshes the kit's own files (workflows, scripts, reviewer instructions, checklists) and moves the `threepass` pin. It never touches the files your team edits: `review-policy.yml`, `CODEOWNERS`, the PR template, the Copilot instructions. It touches the review setup, so the upgrade PR gets a deep review.
 
 You end up with:
 
@@ -21,15 +35,19 @@ You end up with:
   instructions/sensitive-paths.instructions.md
   pull_request_template.md
   review-policy.yml
-  review/light-review-checklist.md
+  review/approval-checklist.md
   review/deep-review-checklist.md
   scripts/review-tier.mjs
-  scripts/post-agent-review.sh
+  scripts/post-light-review.sh
+  scripts/post-deep-review.sh
   workflows/review-tier.yml
   workflows/review-submitted.yml
-  workflows/agent-review.yml
+  workflows/light-review.yml                       (pass 2)
+  workflows/deep-review.yml                        (pass 3: the reviewer brief)
 .claude/
-  review/agent-review.md
+  review/light-review.md
+  review/methods/addy.md
+  review/methods/pr-review-toolkit.md
   review/skills/code-review-and-quality/SKILL.md   (Addy Osmani, MIT, pinned)
   review/references/security-checklist.md          (Addy Osmani, MIT, pinned)
   review/references/performance-checklist.md       (Addy Osmani, MIT, pinned)
@@ -40,11 +58,12 @@ The skill sits in `.claude/review/skills/`, not `.claude/skills/`, on purpose. C
 
 ## 2. Make it yours
 
-- **`.github/review-policy.yml`:** replace the example `sensitive_paths` with your core paths and owning teams. Check `ignore_for_size` covers your generated code, and set `deep_review.min_approvals`.
+- **`.github/review-policy.yml`:** replace the example `sensitive_paths` with your core paths and owning teams. Check `ignore_for_size` covers your generated code, set `deep_review.min_approvals`, and check `light_review.reviewer`.
 - **`.github/CODEOWNERS`:** the same paths and teams. Keep the two in sync ([why](06-routing.md#keep-the-policy-and-codeowners-in-sync)).
 - **`.github/instructions/sensitive-paths.instructions.md`:** update the `applyTo:` globs to the same paths.
 - **`.github/copilot-instructions.md`:** add anything specific to your stack, such as framework conventions Copilot keeps getting wrong.
-- **`.github/workflows/agent-review.yml`:** if bots or coding agents open PRs in your repo, list them in `allowed_bots`.
+- **`.github/workflows/light-review.yml`:** if bots or coding agents open PRs in your repo, list them in `allowed_bots`.
+- **`.threepass.yml`** (optional, at the repo root): pass 3's model, cost ceiling and confidence threshold. Without it, the defaults apply (`max_cost_usd: 0.50` per brief). Pass 3 reads it from the base branch. See [the tool's config](../../docs/design.md#config).
 
 ## 3. Labels and secret
 
@@ -52,6 +71,8 @@ The skill sits in `.claude/review/skills/`, not `.claude/skills/`, on purpose. C
 bash ../three-pass-review/guide/scripts/create-labels.sh your-org/your-repo
 gh secret set ANTHROPIC_API_KEY -R your-org/your-repo
 ```
+
+The key is used by pass 2 (the light review) and pass 3 (the reviewer brief).
 
 ## 4. Branch ruleset
 
@@ -73,10 +94,10 @@ Organization owners or repository admins can set the default effort for automati
 
 ## 6. Open the setup PR
 
-Commit and open a PR. The tier check and the agent review **won't work on this PR**:
+Commit and open a PR. The tier check and the AI reviews **won't work on this PR**:
 
-- The tier check runs from the base branch, where it doesn't exist yet.
-- The agent review reads its instructions from the base branch's `.claude/`, which isn't there yet, so it reports "didn't finish".
+- The tier check runs from the base branch, where it doesn't exist yet, so it can't start pass 3 either.
+- The light review reads its instructions from the base branch's `.claude/`, which isn't there yet, so it reports "didn't finish".
 
 That's expected. Have an eng lead review the setup PR by hand, using the [deep review checklist](../templates/.github/review/deep-review-checklist.md), and merge it.
 
@@ -84,8 +105,9 @@ On the next ordinary PR, check that:
 
 - [ ] a **Review tier** comment and a `tier/*` label appear within a minute,
 - [ ] Copilot leaves a review,
-- [ ] an **Agent review (pass 2)** comment appears within a few minutes, and the tier comment's merge gate updates after it,
-- [ ] adding `escalate/deep` by hand flips the tier to Deep, and removing it as the PR author puts it back.
+- [ ] a **Light review (pass 2)** comment appears within a few minutes, and the tier comment's merge gate updates after it,
+- [ ] adding `escalate/deep` by hand flips the tier to Deep, and removing it as the PR author puts it back,
+- [ ] on that deep PR, a **Review brief** comment (pass 3) appears within a few minutes.
 
 ## Troubleshooting
 
@@ -94,9 +116,13 @@ On the next ordinary PR, check that:
 | No tier comment | The workflows aren't on the default branch yet. `pull_request_target` and `workflow_run` workflows run from there, so they only start working after the setup PR is merged |
 | Tier job fails with "No .github/review-policy.yml on …" | The PR's base branch doesn't have the policy. Merge the kit into that branch too |
 | Tier job fails parsing the policy | YAML syntax error in `review-policy.yml`. Run `yq -o=json '.' .github/review-policy.yml` locally |
-| Agent review skipped | The PR is a draft, comes from a fork, was opened by Dependabot, or has the `skip-agent-review` label |
-| Agent review "didn't finish" | Missing or invalid `ANTHROPIC_API_KEY`; a bot opened the PR and isn't in `allowed_bots`; or it hit the 20-minute timeout. Open the run log from the comment |
-| Gate stays pending on a light PR | The agent review hasn't finished on the latest commit, or it failed. Re-run **Agent review**, or escalate |
+| Light review skipped | The PR is a draft, comes from a fork, was opened by Dependabot, or has the `skip-light-review` label |
+| Light review "didn't finish" | Missing or invalid `ANTHROPIC_API_KEY`; a bot opened the PR and isn't in `allowed_bots`; or it hit the 20-minute timeout. Open the run log from the comment |
+| Light review fails with "Unknown light_review.reviewer" | `light_review.reviewer` on the base branch must be `addy` or `pr-review-toolkit` |
+| Gate stays pending on a light PR | The light review hasn't finished on the latest commit, or it failed. Re-run **Light review**, or escalate |
+| No reviewer brief on a deep PR | Forks and drafts get none. Otherwise check the **Review tier** run's log for "Couldn't start the deep review", and that `DEEP_REVIEW_WORKFLOW` in `review-tier.yml` names `deep-review.yml` |
+| Brief says "not run" | Over the cost ceiling even after shrinking context. Raise `max_cost_usd` in `.threepass.yml` on the base branch, or split the PR |
+| Brief "didn't finish" | Missing `ANTHROPIC_API_KEY`, or no pricing for the model in `.threepass.yml`. Rerun **Deep review** from the Actions tab with the PR number and **force** on |
 | Gate didn't update after an approval on a fork PR | Re-run the latest **Review tier** run from the Actions tab |
 | Tier says light but CODEOWNERS required an owner | The policy and CODEOWNERS have drifted. Sync them |
 

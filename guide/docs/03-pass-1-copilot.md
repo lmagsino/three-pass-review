@@ -63,4 +63,4 @@ The template instructions keep pass 1 in its lane: bugs, security, broken contra
 
 GitHub has a public preview where Copilot can submit an approving review that counts toward required approvals. It's off by default, and repository admins can limit which file paths Copilot approvals count for. Don't turn this on at the start. It's a step for later, for specific low-risk paths that have earned it. See [earning trust](08-earning-trust.md).
 
-Next: [pass 2, the agent review](04-pass-2-agent-review.md).
+Next: [pass 2, the light review](04-pass-2-light-review.md).

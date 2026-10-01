@@ -6,7 +6,7 @@ Thanks for helping. This guide gets better with real-world numbers and failure s
 
 - **Field reports.** What tier mix, agent precision and escaped-defect numbers did you see after a month? What did you change in the policy, and why? Open an issue with the `field-report` label.
 - **Policy presets** for common stacks (Rails, Django, Next.js, Go services, monorepos): sensitive paths, generated folders, dependency and quality-gate files.
-- **Ports** of the workflows to other CI systems or other pass-2 agents. Keep the properties in [swapping the agent](docs/04-pass-2-agent-review.md#swapping-the-agent).
+- **Ports** of the workflows to other CI systems, or other pass-2 reviewers. Keep the properties in [bringing another reviewer](docs/04-pass-2-light-review.md#bringing-another-reviewer).
 - **Fixes** to anything that's wrong or out of date. GitHub and the agent tools change fast.
 
 ## Ground rules

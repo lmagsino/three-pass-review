@@ -20,13 +20,13 @@ The structure matters more than the vendors.
 - **Pass 1:** swap in any automatic PR reviewer.
 - **Pass 2:** swap in any coding agent that can run in CI, read the markdown prompt and skill, and return a structured result.
 
-Keep the two reviewers different, and keep the agent read-only and escalate-only. See [swapping the agent](04-pass-2-agent-review.md#swapping-the-agent).
+Keep the two reviewers different, and keep the light reviewer read-only and escalate-only. Pass 2 already lets you choose between Addy's skill and Claude Code's `pr-review-toolkit`; see [choosing the reviewer](04-pass-2-light-review.md#choosing-the-reviewer).
 
 **Does this work on GitLab or Bitbucket?**
 The process does. The templates are GitHub-specific: Actions, rulesets, CODEOWNERS, Copilot review. You'd port the tier script (it only needs a list of changed files with line counts) and the workflows.
 
 **What about open source projects with fork PRs?**
-The tier check works on forks (it uses `pull_request_target` safely; see [routing](06-routing.md#why-pull_request_target-is-safe-here)). The agent review skips forks, because fork runs don't get secrets and the safe alternatives are fiddly. So fork PRs go to deep review. A maintainer can run the same skill locally to prepare that review, and trusted regulars can be given branch access so their PRs get pass 2.
+The tier check works on forks (it uses `pull_request_target` safely; see [routing](06-routing.md#why-pull_request_target-is-safe-here)). The light review and the reviewer brief skip forks, because fork runs don't get secrets and the safe alternatives are fiddly. So fork PRs go to deep review. A maintainer can run the same skill locally to prepare that review, and trusted regulars can be given branch access so their PRs get pass 2.
 
 **Our juniors learned by reviewing. Doesn't this take that away?**
 It can, if you let it. Deep reviews are where knowledge transfer now happens on purpose. Rotate juniors through them as second reviewers, and have them write the sign-off note. A light-tier approval also isn't "nobody reads it". It's a focused 5-minute check, and juniors can do those from day one.

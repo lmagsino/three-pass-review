@@ -17,26 +17,27 @@ Don't switch everything on at once. Turn on the sensors first, watch them next t
 
 **Done when:** authors routinely fix or answer Copilot comments before asking for human review.
 
-## Stage 2: agent review and tiers in shadow mode (weeks 2–3)
+## Stage 2: light review, tiers and the brief in shadow mode (weeks 2–3)
 
-- Vendor the skill, add the agent review and tier check workflows, and create the labels.
-- **Shadow mode:** the tier labels, agent summaries and `review-gate` status appear, but `review-gate` isn't required yet, and humans keep reviewing every PR the way they do today.
+- Run the installer, pick the light reviewer (`light_review.reviewer`), and create the labels.
+- **Shadow mode:** tier labels, light review summaries, reviewer briefs on deep PRs and the `review-gate` status all appear. But `review-gate` isn't required yet, and humans keep reviewing every PR the way they do today.
 - After each human review, note on the PR:
-  - Did the agent catch what you caught?
+  - Did the light review catch what you caught?
   - Did it flag anything you'd have missed?
   - Was the tier right?
+  - On deep PRs: did the reviewer brief get the change right, and did **Where to look first** point at what mattered?
 
 **Done when** you've looked at the numbers from two weeks of PRs:
 
-- Agent precision on Critical/Required findings is 70% or better.
+- Light review precision on Critical/Required findings is 70% or better.
 - Tier labels match reviewers' judgment on 9 out of 10 PRs.
 - Every rule that fires a lot has been tuned or justified.
 
 ## Stage 3: tiers go live (week 4)
 
 - Add `review-gate` as a required status check in the ruleset.
-- `tier/light`: one approver, the [light review checklist](../templates/.github/review/light-review-checklist.md), about 5 minutes.
-- `tier/deep`: the code owner and a second reviewer, the [deep review checklist](../templates/.github/review/deep-review-checklist.md).
+- `tier/light`: one approver, the [approval checklist](../templates/.github/review/approval-checklist.md), about 5 minutes.
+- `tier/deep`: the code owner and a second reviewer, starting from the reviewer brief, with the [deep review checklist](../templates/.github/review/deep-review-checklist.md).
 - Start the [trust ledger](08-earning-trust.md): tier mix, reverts and incidents by tier, sampled agent precision.
 - Tell the team, out loud: anyone can add `escalate/deep`, any time, no explanation needed.
 
