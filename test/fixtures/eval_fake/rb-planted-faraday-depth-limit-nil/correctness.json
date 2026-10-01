@@ -1,0 +1,17 @@
+{
+  "findings": [
+    {
+      "file": "lib/faraday/encoders/nested_params_encoder.rb",
+      "line_start": 145,
+      "line_end": 145,
+      "category": "correctness",
+      "subcategory": "nil_handling",
+      "severity": "medium",
+      "confidence": 0.75,
+      "title": "nil depth limit raises instead of disabling",
+      "explanation": "Synthetic fixture response for pipeline tests; not model output.",
+      "evidence": "return unless depth > @param_depth_limit",
+      "suggested_fix": "n/a"
+    }
+  ]
+}

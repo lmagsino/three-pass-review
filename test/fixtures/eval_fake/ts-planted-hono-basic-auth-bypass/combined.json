@@ -1,0 +1,30 @@
+{
+  "findings": [
+    {
+      "file": "src/middleware/basic-auth/index.ts",
+      "line_start": 122,
+      "line_end": 126,
+      "category": "security",
+      "subcategory": "missing_authn",
+      "severity": "critical",
+      "confidence": 0.9,
+      "title": "Password not checked when onAuthSuccess is set",
+      "explanation": "Synthetic fixture response for pipeline tests; not model output.",
+      "evidence": "if (options.onAuthSuccess && usernameEqual) {",
+      "suggested_fix": "n/a"
+    },
+    {
+      "file": "src/middleware/basic-auth/index.ts",
+      "line_start": 122,
+      "line_end": 126,
+      "category": "architecture",
+      "subcategory": "duplication",
+      "severity": "low",
+      "confidence": 0.62,
+      "title": "Success path duplicated",
+      "explanation": "Synthetic fixture response for pipeline tests; not model output.",
+      "evidence": "await next()",
+      "suggested_fix": "n/a"
+    }
+  ]
+}

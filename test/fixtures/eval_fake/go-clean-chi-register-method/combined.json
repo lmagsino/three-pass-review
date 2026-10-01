@@ -1,0 +1,17 @@
+{
+  "findings": [
+    {
+      "file": "tree.go",
+      "line_start": 74,
+      "line_end": 74,
+      "category": "architecture",
+      "subcategory": "naming",
+      "severity": "low",
+      "confidence": 0.65,
+      "title": "Map update could use a helper",
+      "explanation": "Synthetic fixture response for pipeline tests; not model output.",
+      "evidence": "reverseMethodMap[mt] = method",
+      "suggested_fix": "n/a"
+    }
+  ]
+}

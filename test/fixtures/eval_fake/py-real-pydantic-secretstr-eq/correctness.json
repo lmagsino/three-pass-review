@@ -1,0 +1,17 @@
+{
+  "findings": [
+    {
+      "file": "pydantic/types.py",
+      "line_start": 1891,
+      "line_end": 1891,
+      "category": "correctness",
+      "subcategory": "api_misuse",
+      "severity": "medium",
+      "confidence": 0.8,
+      "title": "compare_digest rejects non-ASCII str",
+      "explanation": "Synthetic fixture response for pipeline tests; not model output.",
+      "evidence": "secrets.compare_digest(self.get_secret_value(), other.get_secret_value())",
+      "suggested_fix": "n/a"
+    }
+  ]
+}
