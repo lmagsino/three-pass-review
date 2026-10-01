@@ -25,20 +25,41 @@ A code review process you install in every project: two AI passes on every pull 
 
 A **tier check**, with rules read from the base branch, decides which PRs go deep, and a required **`review-gate`** check enforces it. Automation can raise a tier but never lower one. AI never approves anything.
 
-## Pass 3: help for the human reviewer
+The pictures below follow one example PR through all three passes.
 
-Deep reviews are where human time goes, so pass 3 starts with a brief that the owner can read in five minutes, before any code:
+### Pass 1 · Auto review
+
+<p align="center">
+  <img src="guide/docs/images/pass-1-auto-review.svg" alt="Pass 1, auto review: Copilot comments on a line where reviews.find can return null, with a suggested change applied in one click. It runs on every push, takes seconds to minutes, and can't approve, block or change the tier." width="100%">
+</p>
+
+Copilot catches small, line-level mistakes on every push, and most fixes take one click. [More on pass 1](guide/docs/03-pass-1-copilot.md).
+
+### Pass 2 · Light review
+
+<p align="center">
+  <img src="guide/docs/images/pass-2-light-review.svg" alt="Pass 2, light review: the team picks Addy Osmani's skill or Claude Code's pr-review-toolkit. The light reviewer checks intent, tests, correctness and security, blast radius and rollback, and posts one verified summary. Clean means one approval; a Critical or Required finding escalates the PR to pass 3." width="100%">
+</p>
+
+A second, different AI reviews the whole change and reports only what it can prove. A clean result means the PR needs one quick approval; a serious finding sends it to pass 3. [More on pass 2](guide/docs/04-pass-2-light-review.md).
+
+### Pass 3 · Deep review
+
+<p align="center">
+  <img src="guide/docs/images/pass-3-deep-review.svg" alt="Pass 3, deep review: for deep-tier PRs, the AI builds a change map, a brief and three independent checks into one reviewer brief. Then the code owner and a second reviewer start from it, verify the tests, check contracts, confirm rollback and sign off; review-gate needs two approvals." width="100%">
+</p>
+
+Deep reviews are where human time goes, so pass 3 starts with a **reviewer brief** that the owner can read in five minutes, before any code:
 
 - **The change** in plain words, and whether it matches the PR description
 - **A change map**, computed from the diff: areas touched, size, and warnings for migrations, dependencies, CI and infra changes, and deletions
 - **Impact** on users and callers, **risks**, and how to **roll back**
 - **Tests**: what's covered and what isn't
-- **Where to look first**: the riskiest lines, most important first
-- **Questions for the author**
+- **Where to look first** and **questions for the author**
 - **Findings** from three independent AI checks (correctness, security, architecture)
 - **A sign-off draft**, pre-filled for the reviewer to confirm or correct
 
-[Here's a brief](test/fixtures/golden/basic_brief.md) rendered from the test fixtures (synthetic, not a real review). The brief comes from `threepass`, a tool in this repository. It runs under a hard cost ceiling, never approves or blocks, and reads the PR as data only.
+[Here's a brief](test/fixtures/golden/basic_brief.md) rendered from the test fixtures (synthetic, not a real review). The brief comes from `threepass`, a tool in this repository. It runs under a hard cost ceiling, never approves or blocks, and reads the PR as data only. [More on pass 3](guide/docs/05-pass-3-deep-review.md).
 
 ## Why this setup
 

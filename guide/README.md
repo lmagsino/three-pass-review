@@ -18,7 +18,9 @@ This repo is a written guide plus a drop-in kit for GitHub: workflows, a routing
 | **Pass 2: Light review** | A structured review: correctness, security, architecture, blast radius, recoverability. It reports only findings it can verify, and recommends a tier, but can only escalate | An AI reviewer of your choice: [Addy Osmani's `code-review-and-quality` skill](https://github.com/addyosmani/agent-skills/tree/main/skills/code-review-and-quality) or Claude Code's [`pr-review-toolkit`](https://github.com/anthropics/claude-code/tree/main/plugins/pr-review-toolkit) | Every ready PR, every push |
 | **Pass 3: Deep review** | First an AI **reviewer brief**: the change at a high level, a change map, impact, risks, rollback, test gaps, where to look first, findings from three independent checks, and a sign-off draft. Then people verify the tests, constraints and rollback | [`threepass`](../docs/design.md#the-reviewer-brief), then the code owner and a second reviewer | Only PRs routed to deep |
 
-The agents never approve anything. Every PR still needs a person to approve it.
+The AI reviewers never approve anything. Every PR still needs a person to approve it.
+
+Each pass has a picture on its page, following one example PR: [pass 1](docs/03-pass-1-copilot.md), [pass 2](docs/04-pass-2-light-review.md), [pass 3](docs/05-pass-3-deep-review.md).
 
 ## Light or deep
 
