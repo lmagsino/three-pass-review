@@ -10,8 +10,16 @@ module ThreePassReview
 
       module_function
 
+      # Also escapes the Markdown that could change the comment's structure:
+      # backticks (a stray fence would swallow everything after it), links and
+      # images, headings, and #123 references, which create backlinks.
       def block(text)
-        text.to_s.gsub("&", "&amp;").gsub("<", "&lt;").gsub(">", "&gt;").gsub(/@(?=\w)/, "@#{ZERO_WIDTH_SPACE}")
+        text.to_s
+          .gsub("&", "&amp;").gsub("<", "&lt;").gsub(">", "&gt;")
+          .gsub(/@(?=\w)/, "@#{ZERO_WIDTH_SPACE}")
+          .gsub(/[`\[\]~]/) { |c| "\\#{c}" }
+          .gsub(/#(?=\d)/, "##{ZERO_WIDTH_SPACE}")
+          .gsub(/^(\s*)#/, "\\1\\#")
       end
 
       # One line, safe inside a table cell.

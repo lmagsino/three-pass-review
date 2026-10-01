@@ -22,6 +22,12 @@ end)
 Socket.singleton_class.prepend(Module.new do
   def tcp(*args, **) = NoNetwork.refuse(*args)
 end)
+Socket.prepend(Module.new do
+  def connect(*args) = NoNetwork.refuse(*args)
+end)
+Addrinfo.prepend(Module.new do
+  def connect(*args, **) = NoNetwork.refuse(inspect)
+end)
 
 module TestSupport
   def fixture_diff(name = "basic.patch")

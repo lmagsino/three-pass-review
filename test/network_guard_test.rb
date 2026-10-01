@@ -9,6 +9,11 @@ class NetworkGuardTest < Minitest::Test
     assert_raises(RuntimeError) { Socket.tcp("example.com", 443) }
   end
 
+  def test_raw_socket_connects_are_refused
+    assert_raises(RuntimeError) { Addrinfo.tcp("127.0.0.1", 9).connect }
+    assert_raises(RuntimeError) { Socket.new(:INET, :STREAM).connect(Socket.sockaddr_in(9, "127.0.0.1")) }
+  end
+
   def test_http_is_refused
     error = assert_raises(RuntimeError) { Net::HTTP.get(URI("https://api.anthropic.com/v1/models")) }
     assert_match(/network access attempted/, error.message)

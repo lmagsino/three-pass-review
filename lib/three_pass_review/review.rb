@@ -14,6 +14,7 @@ module ThreePassReview
     end
 
     def run(diff_text:, title: nil, body: nil, mode: "independent")
+      diff_text, title, body = [diff_text, title, body].map { |t| t&.dup&.force_encoding(Encoding::UTF_8)&.scrub }
       diff = Diff.parse(diff_text)
       budget = Budget.new(client: @client, max_cost_usd: @config.max_cost_usd, pricing: @config.pricing_for,
         enforce: @enforce)

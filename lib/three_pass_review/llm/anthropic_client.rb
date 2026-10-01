@@ -22,7 +22,10 @@ module ThreePassReview
       end
 
       def complete(request)
-        message = @sdk.messages.create(**params(request), max_tokens: request.max_tokens)
+        # No automatic retries: a retried call can be billed twice while the
+        # budget counted it once. count_tokens is free, so it keeps them.
+        message = @sdk.messages.create(**params(request), max_tokens: request.max_tokens,
+          request_options: {max_retries: 0})
         usage = message.usage
         stop = message.stop_reason&.to_sym
         text = message.content.select { |block| block.type.to_sym == :text }.map(&:text).join

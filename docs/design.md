@@ -152,13 +152,15 @@ An optional LLM-based reconciler (semantic deduplication) can come later as an e
 1. **Estimate before calling.** For each pass, estimate input tokens (use the API's token-counting endpoint if available, otherwise characters ÷ 3.5) and assume `max_output_tokens` for output. On current models `max_tokens` also bounds thinking, so that's the most a call can be billed for. Price both with the configured per-model rates. In `chained` mode a later pass also receives the earlier passes' findings, so the estimate adds up to `max_output_tokens` for each earlier pass. Each chained call is checked again just before it's made, against what has actually been spent, and skipped if it would go over.
 2. **If the estimate is over the ceiling, degrade in a fixed order:**
    1. Shrink excerpts to the hunks plus a smaller margin (`context.reduced_lines_around_hunk`, default 5).
-   2. Drop excerpts and send the diff only.
+   2. Drop excerpts and conventions files, and send the diff only.
    3. Skip the architecture pass (`independent` and `chained` only; the single modes have one prompt, so they go straight to refusing).
    4. Refuse to run, exit with code 3, and say why.
 
    Every degradation is listed in the output.
 3. **Account after calling.** Compute actual cost from the token usage the API returns, per pass, and report it in both output formats.
 4. **Never exceed it.** A test runs the fake client with a tiny ceiling and asserts that the degradation order is followed and nothing goes over. A refused review makes no API calls (token counting excepted).
+
+Calls to the Messages API are made without the SDK's automatic retries, because a retried call can be billed twice while the budget counted it once. If a call fails after reaching the API (a client-side timeout, say), its cost can't be known, and the pass is reported as failed.
 
 The ceiling is only as accurate as the input count. `count_tokens` is the API's own count. The characters ÷ 3.5 fallback is a heuristic, and it can undercount code. Actual cost is always computed from the usage the API reports, never from the estimate.
 

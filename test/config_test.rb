@@ -53,6 +53,18 @@ class ConfigTest < Minitest::Test
     end
   end
 
+  def test_wrong_shapes_are_config_errors_not_crashes
+    [
+      {"passes" => nil}, {"passes" => {"correctness" => true}}, {"context" => "big"},
+      {"passes" => {"correctness" => {"enabled" => "yes"}}},
+      {"passes" => {"architecture" => {"conventions" => [1]}}},
+      {"passes" => {"architecture" => {"conventions" => ["/etc/passwd"]}}},
+      {"passes" => {"architecture" => {"conventions" => ["../secrets.md"]}}}
+    ].each do |bad|
+      assert_raises(ThreePassReview::Config::Invalid, bad.inspect) { config(bad) }
+    end
+  end
+
   def test_missing_or_null_pricing_is_nil
     assert_nil config("model" => "claude-new-model").pricing_for
     assert_nil config("pricing" => {"claude-sonnet-5-5" => {"input" => nil, "output" => nil}}).pricing_for

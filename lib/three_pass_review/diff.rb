@@ -174,7 +174,7 @@ module ThreePassReview
           raise ParseError, "hunk at line #{header} ends early" if raw.nil?
 
           marker = raw[0]
-          text = raw[1..] || ""
+          text = (raw[1..] || "").freeze
           case marker
           when " ", nil
             raise ParseError, "hunk #{header} has more context than its header says" if old_left.zero? || new_left.zero?

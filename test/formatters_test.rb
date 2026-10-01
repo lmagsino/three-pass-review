@@ -66,6 +66,21 @@ class FormattersTest < Minitest::Test
     assert_includes md, "````\nx = ```danger```\n````"
   end
 
+  def test_untrusted_text_cannot_change_the_comment_structure
+    evil = finding_hash(explanation: "```\n# Fake heading\nsee #123 and [x](https://evil) ![i](https://evil/p.png)",
+      suggested_fix: "~~~")
+    md = ThreePassReview::Formatters::Markdown.new(outcome(responses: {
+      "security" => {"findings" => [evil]}, "correctness" => {"findings" => []}, "architecture" => {"findings" => []}
+    })).render
+    details = md[/<details>.*<\/details>/m]
+
+    assert_includes details, "\\`\\`\\`\n\\# Fake heading"
+    assert_includes details, "##{ThreePassReview::Formatters::Text::ZERO_WIDTH_SPACE}123"
+    assert_includes details, "\\[x\\](https://evil)"
+    assert_includes details, "**Suggested fix:** \\~\\~\\~"
+    assert md.end_with?("</sub>\n")
+  end
+
   def test_json_reports_passes_counts_and_cost
     data = JSON.parse(ThreePassReview::Formatters::JSON.new(outcome).render)
 

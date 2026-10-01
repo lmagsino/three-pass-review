@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "open3"
+
 module ThreePassReview
   Excerpt = Data.define(:path, :start_line, :end_line, :text, :truncated)
   ConventionsFile = Data.define(:path, :text, :truncated)
@@ -45,21 +47,23 @@ module ThreePassReview
     def initialize(repo:, lines_around_hunk: 30, max_excerpt_bytes: 60_000,
       conventions: DEFAULT_CONVENTIONS, max_conventions_bytes: 20_000)
       @repo = File.realpath(repo)
+      @tracked = tracked_files
       @lines_around_hunk = lines_around_hunk
       @max_excerpt_bytes = max_excerpt_bytes
       @conventions = conventions
       @max_conventions_bytes = max_conventions_bytes
     end
 
-    # lines_around_hunk: nil sends the diff only, with no excerpts.
+    # lines_around_hunk: nil sends the diff only: no excerpts, no conventions.
     def build(diff:, title: nil, body: nil, lines_around_hunk: @lines_around_hunk)
-      excerpts, omitted = lines_around_hunk.nil? ? [[], []] : build_excerpts(diff, lines_around_hunk)
+      diff_only = lines_around_hunk.nil?
+      excerpts, omitted = diff_only ? [[], []] : build_excerpts(diff, lines_around_hunk)
       input = BaseInput.new(
         diff: diff,
         title: title.to_s.dup,
         body: body.to_s.dup,
         excerpts: excerpts,
-        conventions: load_conventions,
+        conventions: diff_only ? [] : load_conventions,
         lines_around_hunk: lines_around_hunk,
         omitted_excerpts: omitted
       )
@@ -148,18 +152,32 @@ module ThreePassReview
       end
     end
 
-    # Paths come from an untrusted diff: refuse anything that resolves outside
-    # the repo, and anything that isn't a readable text file.
+    # Paths come from an untrusted diff or config. Never follow a symlink, even
+    # one inside the repo: a PR can add `notes.txt -> .env` and have the secret
+    # excerpted. Never read .git/, and in a git checkout read tracked files only.
     def read_repo_file(relative)
-      return nil if relative.nil? || relative.empty? || relative.start_with?("/")
+      return nil unless relative.is_a?(String) && !relative.empty? && !relative.include?("\0")
+      return nil if relative.start_with?("/") || relative.split("/").include?(".git")
 
-      real = File.realpath(File.join(@repo, relative))
-      return nil unless real.start_with?(@repo + File::SEPARATOR) && File.file?(real)
+      expanded = File.expand_path(relative, @repo)
+      return nil unless expanded.start_with?(@repo + File::SEPARATOR)
+      return nil unless File.file?(expanded) && File.realpath(expanded) == expanded
+      return nil if @tracked && !@tracked.include?(expanded.delete_prefix(@repo + File::SEPARATOR))
 
-      text = File.read(real, mode: "rb")
+      text = File.read(expanded, mode: "rb")
       return nil if text.include?("\0")
 
       text.force_encoding(Encoding::UTF_8).scrub
+    rescue SystemCallError
+      nil
+    end
+
+    # nil when the repo isn't a git checkout (eval context directories).
+    def tracked_files
+      return nil unless File.exist?(File.join(@repo, ".git"))
+
+      out, status = Open3.capture2("git", "-C", @repo, "ls-files", "-z")
+      status.success? ? out.split("\0").to_set : nil
     rescue SystemCallError
       nil
     end

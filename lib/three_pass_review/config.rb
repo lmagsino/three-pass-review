@@ -78,6 +78,9 @@ module ThreePassReview
         known = base.is_a?(Hash) && (base.key?(key) || open_map)
         raise Invalid, "unknown config key #{where}" unless known
 
+        expects_map = base[key].is_a?(Hash) || (open_map && path == ["passes"])
+        raise Invalid, "#{where} must be a mapping" if expects_map && !value.is_a?(Hash)
+
         check_keys(value, base[key], path + [key]) if value.is_a?(Hash) && base[key].is_a?(Hash) && path != ["pricing"]
       end
     end
@@ -101,7 +104,13 @@ module ThreePassReview
       unknown = data["passes"].keys - Runner::PASS_ORDER
       problems << "unknown passes: #{unknown.join(", ")}" if unknown.any?
       problems << "at least one pass must be enabled" if enabled_passes.empty?
-      problems << "passes.architecture.conventions must be a list" unless conventions.is_a?(Array)
+      data["passes"].each do |name, pass|
+        problems << "passes.#{name}.enabled must be true or false" unless [true, false].include?(pass["enabled"])
+      end
+      plain_paths = conventions.is_a?(Array) && conventions.all? do |path|
+        path.is_a?(String) && !path.empty? && !path.start_with?("/") && !path.split("/").include?("..")
+      end
+      problems << "passes.architecture.conventions must be a list of relative paths inside the repo" unless plain_paths
       data["pricing"].each do |id, rates|
         ok = rates.is_a?(Hash) && rates.slice("input", "output").values.all? { |v| v.nil? || (v.is_a?(Numeric) && v >= 0) }
         problems << "pricing.#{id} needs numeric input and output rates" unless ok

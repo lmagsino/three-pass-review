@@ -13,7 +13,7 @@
 
 **1. 🔴 User input interpolated into SQL** `app/models/invoice.rb:8` · security/sql_injection
 
-params[:sort] is interpolated into ORDER BY without allow-listing.
+params\[:sort\] is interpolated into ORDER BY without allow-listing.
 
 ```
 order("#{params[:sort]} DESC")

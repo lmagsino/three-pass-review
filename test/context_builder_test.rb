@@ -81,6 +81,49 @@ class ContextBuilderTest < Minitest::Test
     assert_raises(FrozenError) { input.title << "x" }
   end
 
+  def test_never_follows_symlinks_inside_the_repo
+    Dir.mktmpdir do |dir|
+      File.write(File.join(dir, ".env"), "SECRET_TOKEN=abc123\n")
+      File.symlink(".env", File.join(dir, "notes.txt"))
+      patch = "--- /dev/null\n+++ b/notes.txt\n@@ -0,0 +1 @@\n+SECRET_TOKEN=abc123\n"
+      input = ThreePassReview::ContextBuilder.new(repo: dir).build(diff: ThreePassReview::Diff.parse(patch))
+
+      assert_empty input.excerpts
+    end
+  end
+
+  def test_never_reads_git_internals_even_as_conventions
+    Dir.mktmpdir do |dir|
+      FileUtils.mkdir_p(File.join(dir, ".git"))
+      File.write(File.join(dir, ".git", "config"), "extraheader = AUTHORIZATION: token\n")
+      input = ThreePassReview::ContextBuilder.new(repo: dir, conventions: [".git/config"]).build(diff: load_diff)
+
+      assert_empty input.conventions
+    end
+  end
+
+  def test_in_a_git_checkout_only_tracked_files_are_read
+    Dir.mktmpdir do |dir|
+      system("git", "-C", dir, "init", "-q", exception: true)
+      File.write(File.join(dir, "CONVENTIONS.md"), "tracked rules\n")
+      File.write(File.join(dir, ".env"), "SECRET=1\n")
+      system("git", "-C", dir, "add", "CONVENTIONS.md", exception: true)
+      input = ThreePassReview::ContextBuilder.new(repo: dir, conventions: %w[CONVENTIONS.md .env]).build(diff: load_diff)
+
+      assert_equal %w[CONVENTIONS.md], input.conventions.map(&:path)
+    end
+  end
+
+  def test_diff_only_also_drops_conventions
+    assert_empty builder.build(diff: load_diff, lines_around_hunk: nil).conventions
+  end
+
+  def test_paths_with_nul_bytes_are_skipped
+    patch = "--- a/x\0y\n+++ b/x\0y\n@@ -1 +1 @@\n-a\n+b\n"
+
+    assert_empty builder.build(diff: ThreePassReview::Diff.parse(patch)).excerpts
+  end
+
   def test_refuses_paths_that_escape_the_repo
     Dir.mktmpdir do |dir|
       repo = File.join(dir, "repo")

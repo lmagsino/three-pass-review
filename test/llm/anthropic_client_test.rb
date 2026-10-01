@@ -58,6 +58,13 @@ class AnthropicClientTest < Minitest::Test
     refute params.key?(:tool_choice)
   end
 
+  def test_billed_calls_are_never_retried_by_the_sdk
+    client, messages = client_for(api_message('{"findings":[]}'))
+    client.complete(request)
+
+    assert_equal({max_retries: 0}, messages.created[:request_options])
+  end
+
   def test_omits_effort_when_not_configured
     client, messages = client_for(api_message('{"findings":[]}'))
     client.complete(request(effort: nil))

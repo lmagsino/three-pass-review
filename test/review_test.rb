@@ -35,6 +35,14 @@ class ReviewTest < Minitest::Test
     assert_in_delta 0.0, outcome.accounting.total_usd
   end
 
+  def test_invalid_utf8_in_the_diff_is_scrubbed
+    text = fixture_diff.text.sub("customer.credit", "customer.cr\xE9dit".b)
+    outcome = review.run(diff_text: text.b, title: "caf\xE9".b)
+
+    assert_equal 3, outcome.result.pass_results.size
+    JSON.generate(ThreePassReview::Formatters::JSON.new(outcome).to_h)
+  end
+
   def test_unpriced_model_refuses_unless_the_ceiling_is_off
     config = ThreePassReview::Config.new("model" => "claude-unpriced")
 

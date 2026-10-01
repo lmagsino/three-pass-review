@@ -67,7 +67,7 @@ class IndependenceTest < Minitest::Test
 
   def test_untrusted_content_cannot_forge_an_end_marker
     user = @requests["security"].user
-    id = user[/<<<BEGIN diff (\h{12})>>>/, 1]
+    id = user[/<<<BEGIN diff (\h{32})>>>/, 1]
 
     refute_nil id
     assert_equal 1, user.scan("<<<END diff #{id}>>>").size
