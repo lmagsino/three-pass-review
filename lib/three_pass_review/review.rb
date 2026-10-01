@@ -4,7 +4,7 @@ module ThreePassReview
   # One review end to end: parse, plan under the cost ceiling, run the passes,
   # and account for what they cost. Used by the CLI and the eval.
   class Review
-    Outcome = Data.define(:mode, :model, :diff, :plan, :result, :accounting, :max_cost_usd)
+    Outcome = Data.define(:mode, :model, :diff, :plan, :result, :accounting, :reconciled, :max_cost_usd)
 
     def initialize(config:, client:, repo: ".", enforce_ceiling: true)
       @config = config
@@ -29,7 +29,8 @@ module ThreePassReview
         reduced_lines_around_hunk: @config.reduced_lines_around_hunk)
       result = runner.run(plan.input, mode: mode, passes: plan.passes, guard: budget.guard)
       Outcome.new(mode: mode, model: @config.model, diff: diff, plan: plan, result: result,
-        accounting: budget.account(result), max_cost_usd: @config.max_cost_usd)
+        accounting: budget.account(result), reconciled: reconciler(diff).reconcile(result.pass_results),
+        max_cost_usd: @config.max_cost_usd)
     end
 
     private
@@ -39,7 +40,13 @@ module ThreePassReview
       plan = Budget::Plan.new(input: nil, passes: [], estimate: Budget::Estimate.new(calls: [], total_usd: 0.0),
         degradations: [])
       Outcome.new(mode: mode, model: @config.model, diff: diff, plan: plan, result: result,
-        accounting: budget.account(result), max_cost_usd: @config.max_cost_usd)
+        accounting: budget.account(result), reconciled: reconciler(diff).reconcile([]),
+        max_cost_usd: @config.max_cost_usd)
+    end
+
+    def reconciler(diff)
+      Reconciler.new(diff: diff, confidence_threshold: @config.confidence_threshold,
+        max_comments: @config.max_comments, merge_line_gap: @config.merge_line_gap)
     end
   end
 end

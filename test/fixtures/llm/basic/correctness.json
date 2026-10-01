@@ -21,7 +21,7 @@
       "subcategory": "logic_error",
       "severity": "high",
       "confidence": 0.55,
-      "title": "Sort column is not checked against SORTABLE",
+      "title": "User input interpolated into SQL ORDER BY",
       "explanation": "Any column name is accepted, so an unknown column raises at query time.",
       "evidence": "order(\"#{params[:sort]} DESC\")",
       "suggested_fix": "Fall back to created_at unless SORTABLE includes the param."
@@ -39,5 +39,9 @@
       "evidence": "due_on <= Date.current",
       "suggested_fix": "Keep < unless the PR means to change this."
     }
-  ]
+  ],
+  "usage": {
+    "input_tokens": 1800,
+    "output_tokens": 600
+  }
 }

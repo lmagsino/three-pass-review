@@ -26,5 +26,9 @@
       "evidence": "def self.sorted(params)",
       "suggested_fix": "Take a column name argument and allow-list it in the controller."
     }
-  ]
+  ],
+  "usage": {
+    "input_tokens": 2300,
+    "output_tokens": 510
+  }
 }

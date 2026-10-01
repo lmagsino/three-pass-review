@@ -132,11 +132,13 @@ Deterministic, no LLM call in the MVP: cheap, testable and explainable. The step
 1. **Validate.** Apply the schema checks above.
 2. **Cluster duplicates.** Two findings are duplicates when they're in the same file, their line ranges overlap or sit within `merge_line_gap` (default 3) lines of each other, and either:
    - they have the same subcategory, or
-   - their titles are similar (normalized token overlap above a threshold).
+   - their titles are similar: the Jaccard overlap of their lowercased word tokens, stopwords removed, is at least 0.5.
+
+   Clustering is transitive (union-find over every pair), so the result doesn't depend on the order findings arrive in.
 
    Findings from *different* passes can merge. That's how cross-pass agreement shows up.
 3. **Merge each cluster.** Keep the highest severity and the most specific line range. Concatenate the evidence, de-duplicated. Record which passes agreed.
-4. **Score.** `combined_confidence = 1 - Π(1 - c_i)` over the distinct passes in the cluster, capped at 0.99. Take the maximum within one pass, so a pass that repeats itself isn't counted twice. When two passes agree, the score rises.
+4. **Score.** `combined_confidence = 1 - Π(1 - c_i)` over the distinct passes in the cluster, capped at 0.99. Take the maximum within one pass, so a pass that repeats itself isn't counted twice. When two passes agree, the score rises. In `single_sampled` mode each sample counts as its own source (`combined#1`, `combined#2`, …), so the cost-matched control gets the same agreement bonus as the specialized passes.
 5. **Threshold.** Drop clusters below `confidence_threshold` (default 0.6). Count them as `below_threshold` in the output.
 6. **Rank.** Sort by severity, then combined confidence, then number of agreeing passes.
 7. **Cap.** Keep the top `max_comments` (default 10). Report how many were cut.
@@ -181,7 +183,13 @@ Prices live in config (`pricing:` per model, dollars per million input and outpu
 <sub>Cost $0.087 (correctness $0.031 · security $0.029 · architecture $0.027) · 41,230 input / 2,904 output tokens · 4 findings below threshold · model claude-sonnet-5-5 · prompts v1</sub>
 ```
 
-**JSON** (`--format json`): the reconciled findings, the raw findings from each pass, and the dropped and below-threshold counts. It also includes the cost and tokens per pass, any degradations, the model, the prompt version hashes and the mode.
+(Illustrative; the numbers above aren't real output. `test/fixtures/golden/basic.md` is a real rendering of the fixture review.)
+
+Severities show as 🟥 critical, 🔴 high, 🟠 medium, 🟡 low. Failed or skipped passes, cost-ceiling degradations, and an actual cost over the ceiling are each called out above the table, so a partial review never looks complete. The footer's `prompts` value is a short hash of the whole prompt set.
+
+Findings text comes from the model, and file paths come from the diff, so both are untrusted on their way into the comment. HTML is escaped, table pipes are escaped, evidence goes in code fences longer than any backtick run inside it, and `@mentions` get a zero-width space. That way a prompt injection can't add markup, forge the `<!-- threepass -->` marker, or make the comment ping people.
+
+**JSON** (`--format json`): the reconciled findings, the raw findings from each pass, and the dropped and below-threshold counts (with the reason each invalid finding was dropped). It also includes the cost and tokens per pass, each pass's status (`ok`, `failed`, `skipped`), the estimated and actual totals, any degradations, the model, the prompt version hashes and the mode. `test/fixtures/golden/basic.json` shows the full shape.
 
 Exit codes:
 

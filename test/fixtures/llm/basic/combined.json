@@ -26,5 +26,9 @@
       "evidence": "customer.credit",
       "suggested_fix": "Guard against nil customer."
     }
-  ]
+  ],
+  "usage": {
+    "input_tokens": 2400,
+    "output_tokens": 700
+  }
 }

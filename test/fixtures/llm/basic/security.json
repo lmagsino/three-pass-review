@@ -13,5 +13,9 @@
       "evidence": "order(\"#{params[:sort]} DESC\")",
       "suggested_fix": "Allow-list sort columns with SORTABLE."
     }
-  ]
+  ],
+  "usage": {
+    "input_tokens": 1750,
+    "output_tokens": 420
+  }
 }

@@ -1,0 +1,245 @@
+{
+  "schema_version": 1,
+  "tool_version": "0.1.0",
+  "mode": "independent",
+  "model": "claude-sonnet-5-5",
+  "prompts": {
+    "version": "PROMPTS_VERSION",
+    "hashes": {
+      "shared": "sha256:HASH",
+      "correctness": "sha256:HASH",
+      "security": "sha256:HASH",
+      "architecture": "sha256:HASH",
+      "combined": "sha256:HASH"
+    }
+  },
+  "findings": [
+    {
+      "file": "app/models/invoice.rb",
+      "line_start": 8,
+      "line_end": 8,
+      "category": "security",
+      "subcategory": "sql_injection",
+      "severity": "high",
+      "confidence": 0.955,
+      "title": "User input interpolated into SQL",
+      "explanation": "params[:sort] is interpolated into ORDER BY without allow-listing.",
+      "evidence": [
+        "order(\"#{params[:sort]} DESC\")"
+      ],
+      "suggested_fix": "Allow-list sort columns with SORTABLE.",
+      "passes": [
+        "correctness",
+        "security"
+      ],
+      "source_confidences": {
+        "correctness": 0.55,
+        "security": 0.9
+      },
+      "location": "app/models/invoice.rb:8"
+    },
+    {
+      "file": "app/models/invoice.rb",
+      "line_start": 16,
+      "line_end": 16,
+      "category": "correctness",
+      "subcategory": "nil_handling",
+      "severity": "medium",
+      "confidence": 0.72,
+      "title": "Nil customer not handled in total_due",
+      "explanation": "Invoices without a customer raise NoMethodError when total_due is called.",
+      "evidence": [
+        "line_items.sum(&:amount) - customer.credit"
+      ],
+      "suggested_fix": "Use customer&.credit.to_i.",
+      "passes": [
+        "correctness"
+      ],
+      "source_confidences": {
+        "correctness": 0.72
+      },
+      "location": "app/models/invoice.rb:16"
+    },
+    {
+      "file": "app/models/invoice.rb",
+      "line_start": 7,
+      "line_end": 9,
+      "category": "architecture",
+      "subcategory": "convention_violation",
+      "severity": "medium",
+      "confidence": 0.7,
+      "title": "Model reads request params directly",
+      "explanation": "CONVENTIONS.md says models never read params; controllers allow-list them.",
+      "evidence": [
+        "def self.sorted(params)"
+      ],
+      "suggested_fix": "Take a column name argument and allow-list it in the controller.",
+      "passes": [
+        "architecture"
+      ],
+      "source_confidences": {
+        "architecture": 0.7
+      },
+      "location": "app/models/invoice.rb:7-9"
+    },
+    {
+      "file": "app/models/invoice.rb",
+      "line_start": 5,
+      "line_end": 5,
+      "category": "architecture",
+      "subcategory": "dead_code",
+      "severity": "low",
+      "confidence": 0.66,
+      "title": "SORTABLE allow-list is defined but never used",
+      "explanation": "The constant suggests an allow-list, but sorted ignores it.",
+      "evidence": [
+        "SORTABLE = %w[created_at total].freeze"
+      ],
+      "suggested_fix": "Use it in sorted or remove it.",
+      "passes": [
+        "architecture"
+      ],
+      "source_confidences": {
+        "architecture": 0.66
+      },
+      "location": "app/models/invoice.rb:5"
+    }
+  ],
+  "counts": {
+    "reported": 4,
+    "below_threshold": 1,
+    "cut": 0,
+    "dropped_invalid": 0
+  },
+  "invalid": [],
+  "passes": [
+    {
+      "pass": "correctness",
+      "sample": 1,
+      "status": "ok",
+      "error": null,
+      "stop_reason": "end_turn",
+      "input_tokens": 1800,
+      "output_tokens": 600,
+      "cost_usd": 0.0096,
+      "raw_findings": [
+        {
+          "file": "app/models/invoice.rb",
+          "line_start": 16,
+          "line_end": 16,
+          "category": "correctness",
+          "subcategory": "nil_handling",
+          "severity": "medium",
+          "confidence": 0.72,
+          "title": "Nil customer not handled in total_due",
+          "explanation": "Invoices without a customer raise NoMethodError when total_due is called.",
+          "evidence": "line_items.sum(&:amount) - customer.credit",
+          "suggested_fix": "Use customer&.credit.to_i."
+        },
+        {
+          "file": "app/models/invoice.rb",
+          "line_start": 8,
+          "line_end": 8,
+          "category": "correctness",
+          "subcategory": "logic_error",
+          "severity": "high",
+          "confidence": 0.55,
+          "title": "User input interpolated into SQL ORDER BY",
+          "explanation": "Any column name is accepted, so an unknown column raises at query time.",
+          "evidence": "order(\"#{params[:sort]} DESC\")",
+          "suggested_fix": "Fall back to created_at unless SORTABLE includes the param."
+        },
+        {
+          "file": "app/models/invoice.rb",
+          "line_start": 100,
+          "line_end": 100,
+          "category": "correctness",
+          "subcategory": "boundary",
+          "severity": "low",
+          "confidence": 0.4,
+          "title": "Invoice counts as overdue on its due date",
+          "explanation": "Changing < to <= marks invoices overdue on the day they are due.",
+          "evidence": "due_on <= Date.current",
+          "suggested_fix": "Keep < unless the PR means to change this."
+        }
+      ]
+    },
+    {
+      "pass": "security",
+      "sample": 1,
+      "status": "ok",
+      "error": null,
+      "stop_reason": "end_turn",
+      "input_tokens": 1750,
+      "output_tokens": 420,
+      "cost_usd": 0.0077,
+      "raw_findings": [
+        {
+          "file": "app/models/invoice.rb",
+          "line_start": 8,
+          "line_end": 8,
+          "category": "security",
+          "subcategory": "sql_injection",
+          "severity": "high",
+          "confidence": 0.9,
+          "title": "User input interpolated into SQL",
+          "explanation": "params[:sort] is interpolated into ORDER BY without allow-listing.",
+          "evidence": "order(\"#{params[:sort]} DESC\")",
+          "suggested_fix": "Allow-list sort columns with SORTABLE."
+        }
+      ]
+    },
+    {
+      "pass": "architecture",
+      "sample": 1,
+      "status": "ok",
+      "error": null,
+      "stop_reason": "end_turn",
+      "input_tokens": 2300,
+      "output_tokens": 510,
+      "cost_usd": 0.0097,
+      "raw_findings": [
+        {
+          "file": "app/models/invoice.rb",
+          "line_start": 5,
+          "line_end": 5,
+          "category": "architecture",
+          "subcategory": "dead_code",
+          "severity": "low",
+          "confidence": 0.66,
+          "title": "SORTABLE allow-list is defined but never used",
+          "explanation": "The constant suggests an allow-list, but sorted ignores it.",
+          "evidence": "SORTABLE = %w[created_at total].freeze",
+          "suggested_fix": "Use it in sorted or remove it."
+        },
+        {
+          "file": "app/models/invoice.rb",
+          "line_start": 7,
+          "line_end": 9,
+          "category": "architecture",
+          "subcategory": "convention_violation",
+          "severity": "medium",
+          "confidence": 0.7,
+          "title": "Model reads request params directly",
+          "explanation": "CONVENTIONS.md says models never read params; controllers allow-list them.",
+          "evidence": "def self.sorted(params)",
+          "suggested_fix": "Take a column name argument and allow-list it in the controller."
+        }
+      ]
+    }
+  ],
+  "cost": {
+    "total_usd": 0.027,
+    "estimated_usd": 0.133882,
+    "max_cost_usd": 0.5,
+    "input_tokens": 5850,
+    "output_tokens": 1530,
+    "over_ceiling": false
+  },
+  "degradations": [],
+  "diff": {
+    "files": [
+      "app/models/invoice.rb"
+    ]
+  }
+}
