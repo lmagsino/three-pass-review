@@ -2,7 +2,9 @@
 
 **Job:** a code owner decides whether a high-blast-radius change is safe to ship, and makes sure someone on the team understands it.
 
-This is where human review time goes: verification, constraints and recoverability, on the changes where a mistake would really hurt.
+Pass 3 has two parts:
+1. **An automated reviewer brief**, posted as soon as a PR is routed deep. It does the reading and organizing.
+2. **The human deep review**, which starts from the brief and spends its time on judgment: verification, constraints and recoverability, on the changes where a mistake would really hurt.
 
 ## When a PR gets a deep review
 
@@ -14,7 +16,25 @@ A PR is `tier/deep` when any of these is true (details in [routing](06-routing.m
 - It **deletes source files** or changes **dependencies**.
 - It's **big or cross-cutting**: over 400 changed lines, over 30 files, or more than 3 top-level folders.
 - It's from a **first-time contributor**.
-- The **agent escalated it**, or **someone added `escalate/deep`**.
+- The **light review escalated it**, or **someone added `escalate/deep`**.
+
+## The reviewer brief
+
+When the tier check routes a same-repo PR deep, it starts [`deep-review.yml`](../templates/.github/workflows/deep-review.yml), which runs [`threepass --brief`](../../docs/design.md#the-reviewer-brief) and posts one comment, updated for each new commit:
+
+| Section | What it gives you |
+|---|---|
+| **The change** | What the PR does and why, in two to four plain sentences, and whether that matches the description |
+| **Change map** | Areas touched, files and lines per area, and warnings for migrations, dependency, CI and infra changes and deletions. Computed from the diff, so it's exact |
+| **Impact** | What changes for users, callers and operators: behavior, API contracts, data, config, dependencies |
+| **Risks and rollback** | What could go wrong, and whether a plain revert undoes it |
+| **Tests** | Which changed behavior the tests cover, and the gaps |
+| **Where to look first** | Up to five places, most important first: the top AI findings, then the brief's own picks |
+| **Questions for the author** | What you'll need answered before approving |
+| **Findings** (folded) | Three independent AI checks, for correctness, security and architecture, merged and ranked |
+| **Sign-off draft** (folded) | The note from step 6 below, pre-filled with rollback, test coverage and the questions, with placeholders for what only you can confirm |
+
+The brief runs under a hard cost ceiling (`max_cost_usd` in `.threepass.yml`, read from the base branch). It never approves or blocks, and it never lowers a tier. It reads the diff and the changed files only, so callers elsewhere in the repo come from the light review's blast-radius table. PRs from forks get no brief, because fork runs get no secrets; review them with the checklist alone.
 
 ## Who reviews
 
@@ -33,9 +53,10 @@ Before reading code, read:
 
 - the PR description,
 - the tier comment (why this is deep),
-- the agent summary: **What this PR does**, **Blast radius**, **Worth opening** and **Could not verify**.
+- the **reviewer brief**: the change, the change map, impact, risks, and where to look first,
+- the light review's summary: **Blast radius**, **Worth opening** and **Could not verify**.
 
-If you can't state what the PR does and why, stop and ask the author.
+If you can't state what the PR does and why, stop and ask the author, starting with the brief's questions.
 
 ### 2. Verify the verification (10–15 minutes)
 
@@ -49,7 +70,7 @@ This matters more than reading the implementation. Read the test changes more ca
 ### 3. Constraints and blast radius (10–15 minutes)
 
 - **Invariants.** Check the rules this area depends on, for example "only checkout code calls `charge()`", "every handler checks permissions", "money is never a float". If those rules live only in people's heads, write them down after this review; Addy's [`constraint-driven-development`](https://github.com/addyosmani/agent-skills/tree/main/skills/constraint-driven-development) skill is a good way to do it.
-- **Callers.** Every caller of a changed contract still works. The agent's blast-radius table is where you start, not where you stop.
+- **Callers.** Every caller of a changed contract still works. The brief's impact section and the light review's blast-radius table are where you start, not where you stop.
 - **Boundaries.** No feature logic leaked into shared modules, and no dependency the area doesn't need.
 - **Security.** Input validated at the boundary, authorization checked, nothing sensitive logged.
 
@@ -66,7 +87,7 @@ Approve only if you understand the change well enough to debug it at 2am. If an 
 
 ### 6. Sign off
 
-Approve with a short, structured note so the decision is on record:
+Approve with a short, structured note so the decision is on record. The brief's **sign-off draft** gives you this shape pre-filled; replace every placeholder with what you actually checked:
 
 ```
 Deep review
@@ -80,6 +101,7 @@ Where an AI finding was wrong, reply on it and say so. Those replies feed the [t
 
 ## Anti-patterns
 
+- **Pasting the sign-off draft unedited.** The draft says what the AI saw. The note has to say what you verified.
 - **"Both AIs were clean, LGTM."** A clean AI review on a deep-tier PR tells you where not to look first. It doesn't tell you the change is safe.
 - **Re-reading every line.** Spend the time on tests, contracts and rollback, not on things the AI passes and linters cover.
 - **Reviewing a 2,000-line PR.** Ask for a split. Big PRs get rubber-stamped or rejected, and both are failures.

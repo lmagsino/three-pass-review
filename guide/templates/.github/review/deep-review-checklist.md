@@ -8,7 +8,8 @@ Who signs off: a code owner for the area (GitHub enforces this through CODEOWNER
 
 - [ ] I can state what the PR changes and why, in my own words.
 - [ ] The PR description covers proof it works, risk, rollback and AI involvement. If not, ask before going further.
-- [ ] I've read the tier comment (why it's deep) and the agent summary, including **Worth opening** and **Could not verify**.
+- [ ] I've read the tier comment (why it's deep), the **reviewer brief** (pass 3: the change, change map, impact, risks, where to look first) and the light review summary, including **Worth opening** and **Could not verify**.
+- [ ] The brief's **questions for the author** are answered, or I've asked them.
 
 ## 2. Verify the verification (10–15 min)
 
@@ -22,7 +23,7 @@ Read the test changes more carefully than the code.
 ## 3. Constraints and blast radius (10–15 min)
 
 - [ ] The change keeps the rules this area depends on (for example: only checkout code calls `charge()`, every handler checks permissions, money is never a float). If those rules aren't written down, write them down after this review.
-- [ ] Every caller of a changed contract (function signature, API response, event, schema, config key) still works. The agent's blast-radius table is a starting point, not the answer.
+- [ ] Every caller of a changed contract (function signature, API response, event, schema, config key) still works. The brief's impact section and the light review's blast-radius table are a starting point, not the answer.
 - [ ] No feature logic leaked into shared modules. No new dependency the area didn't need.
 - [ ] Security: input validated at the boundary, authorization checked, nothing sensitive logged.
 
@@ -39,7 +40,7 @@ Read the test changes more carefully than the code.
 
 ## Sign off
 
-Approve with a comment in this shape, so the decision is on record:
+Approve with a comment in this shape, so the decision is on record. The reviewer brief's **sign-off draft** starts it for you; replace every placeholder with what you actually checked:
 
 ```
 Deep review
