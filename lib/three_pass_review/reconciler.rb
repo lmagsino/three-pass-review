@@ -15,6 +15,10 @@ module ThreePassReview
       def location
         (line_start == line_end) ? "#{file}:#{line_start}" : "#{file}:#{line_start}-#{line_end}"
       end
+
+      def severity_rank
+        Finding::SEVERITIES.index(severity)
+      end
     end
 
     Invalid = Data.define(:source, :reason, :finding)

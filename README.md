@@ -62,40 +62,28 @@ Three passes cost roughly three times the input tokens of one. So:
 
 ## Usage
 
-> Not released yet. This is the planned interface ([design](docs/design.md)).
+> Not on RubyGems yet. Run it from a clone with Ruby 3.3+.
 
 ```bash
-gem install three_pass_review
+bundle install
 export ANTHROPIC_API_KEY=...
 
-git diff main...HEAD | threepass review --diff - --title "Add sortable invoice columns" --body-file pr.md
+git diff main...HEAD > change.patch
+bundle exec exe/threepass review --diff change.patch --repo . --title "Add sortable invoice columns" --body-file pr.md
 ```
 
-As a GitHub Action:
+`--diff -` reads the diff from stdin. `--format json` prints machine-readable output. `--fail-on high` exits 2 when a finding is at least that severe, and exit code 3 means the cost ceiling refused the review. `bundle exec exe/threepass --help` lists every flag.
 
-```yaml
-name: threepass
-on:
-  pull_request:
-    types: [opened, synchronize, ready_for_review]
-permissions:
-  contents: read
-  pull-requests: write
-jobs:
-  review:
-    if: github.event.pull_request.head.repo.full_name == github.repository   # forks get no secrets
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-      - uses: <you>/three-pass-review@v0
-        with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          max_cost_usd: "0.50"
+To try it without an API key, replay the fixture responses:
+
+```bash
+THREEPASS_FAKE=test/fixtures/llm/basic bundle exec exe/threepass review \
+  --diff test/fixtures/diffs/basic.patch --repo test/fixtures/repo --title "Add sortable invoices"
 ```
 
-It posts one comment and updates it on every push. An illustrative example (not real output):
+A GitHub Action that posts the comment on every push is designed ([design: GitHub Action](docs/design.md#github-action)) but on hold, so for now the CLI is the only interface.
+
+The output is one comment. An illustrative example (not real output):
 
 ```markdown
 ### threepass: 2 findings (1 high)
