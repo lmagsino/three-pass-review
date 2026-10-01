@@ -1,0 +1,7 @@
+{
+  "findings": [],
+  "usage": {
+    "input_tokens": 900,
+    "output_tokens": 200
+  }
+}

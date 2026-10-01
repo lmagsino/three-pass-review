@@ -1,0 +1,21 @@
+{
+  "findings": [
+    {
+      "file": "app/models/invoice.rb",
+      "line_start": 8,
+      "line_end": 8,
+      "category": "security",
+      "subcategory": "sql_injection",
+      "severity": "high",
+      "confidence": 0.9,
+      "title": "User input interpolated into SQL",
+      "explanation": "params[:sort] is interpolated into ORDER BY without allow-listing.",
+      "evidence": "order(\"#{params[:sort]} DESC\")",
+      "suggested_fix": "Allow-list sort columns with SORTABLE."
+    }
+  ],
+  "usage": {
+    "input_tokens": 1750,
+    "output_tokens": 420
+  }
+}

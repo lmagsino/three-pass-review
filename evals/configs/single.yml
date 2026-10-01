@@ -1,0 +1,8 @@
+# Comparison only: one pass with a combined prompt. Is splitting into three passes worth it?
+mode: single
+runs: 3
+# Training data cutoff of the model below, from Anthropic's models overview (checked 2026-10-01).
+# Recall is also reported separately for cases merged before and after it.
+model_training_cutoff: "2026-06"
+# Overrides on top of lib/three_pass_review/defaults.yml (model, ceiling, threshold, ...).
+threepass: {}

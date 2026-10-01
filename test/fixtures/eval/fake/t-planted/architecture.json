@@ -1,0 +1,34 @@
+{
+  "findings": [
+    {
+      "file": "app/models/invoice.rb",
+      "line_start": 5,
+      "line_end": 5,
+      "category": "architecture",
+      "subcategory": "dead_code",
+      "severity": "low",
+      "confidence": 0.66,
+      "title": "SORTABLE allow-list is defined but never used",
+      "explanation": "The constant suggests an allow-list, but sorted ignores it.",
+      "evidence": "SORTABLE = %w[created_at total].freeze",
+      "suggested_fix": "Use it in sorted or remove it."
+    },
+    {
+      "file": "app/models/invoice.rb",
+      "line_start": 7,
+      "line_end": 9,
+      "category": "architecture",
+      "subcategory": "convention_violation",
+      "severity": "medium",
+      "confidence": 0.7,
+      "title": "Model reads request params directly",
+      "explanation": "CONVENTIONS.md says models never read params; controllers allow-list them.",
+      "evidence": "def self.sorted(params)",
+      "suggested_fix": "Take a column name argument and allow-list it in the controller."
+    }
+  ],
+  "usage": {
+    "input_tokens": 2300,
+    "output_tokens": 510
+  }
+}

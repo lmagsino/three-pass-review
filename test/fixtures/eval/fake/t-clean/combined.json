@@ -1,0 +1,21 @@
+{
+  "findings": [
+    {
+      "file": "lib/plain.rb",
+      "line_start": 2,
+      "line_end": 2,
+      "category": "correctness",
+      "subcategory": "logic_error",
+      "severity": "medium",
+      "confidence": 0.8,
+      "title": "BETA changes case of a public constant",
+      "explanation": "x",
+      "evidence": "BETA",
+      "suggested_fix": "y"
+    }
+  ],
+  "usage": {
+    "input_tokens": 900,
+    "output_tokens": 200
+  }
+}
