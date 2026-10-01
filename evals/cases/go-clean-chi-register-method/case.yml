@@ -1,0 +1,24 @@
+# Provenance checked 2026-10-01 against the GitHub API: license, PR, merge commit and later history.
+id: go-clean-chi-register-method
+kind: clean
+language: go
+source:
+  repo: https://github.com/go-chi/chi
+  license: MIT
+  pr: https://github.com/go-chi/chi/pull/1022
+  introduced_by: 9fb4a15daa6d4ccd5e7286c1227d58872f89f4cb
+  merged_at: '2025-10-08'
+pr:
+  title: update reverseMethodMap in RegisterMethod
+  body: 'Fixes #1021.
+
+    '
+defects: []
+notes: 'Probably clean, not certainly clean. Merged about 12 months before it was
+  added here. Checked 2026-10-01: none of the 7 later commits to tree.go (77074b3,
+  9b6ddcd, 29164f0, caf87e6, be60b2e, 903cff2, 142fada) or the 4 to mux_test.go (756fcb8,
+  aba8618, 9b6ddcd, caf87e6) changes a line this PR added, and both the tree.go line
+  and the added test block are still on master. The code change is one line, so this
+  case is a weak test of false positives on its own.
+
+  '
